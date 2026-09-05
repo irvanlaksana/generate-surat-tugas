@@ -7,6 +7,7 @@ import BastSheet from "./components/BastSheet";
 import { SuratTugasHal1, SuratTugasHal2 } from "./components/SuratTugas";
 import PreviewStage, { PageCard } from "./components/PreviewStage";
 import { Btn } from "./components/ui";
+import { validateData } from "./lib/validation";
 
 const STORAGE_KEY = "bast-generator-v1";
 const MM = 96 / 25.4;
@@ -23,12 +24,14 @@ function loadInitial(): BastData {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<BastData>;
+      const jenis = parsed.jenis === "roda2" ? "roda2" : "roda4";
       return {
         ...BLANK_DATA,
         ...parsed,
+        jenis,
         kop: { ...BLANK_DATA.kop, ...(parsed.kop ?? {}) },
         st: { ...BLANK_DATA.st, ...(parsed.st ?? {}) },
-        checklist: syncChecklist(parsed.jenis ?? "roda4", parsed.checklist ?? {}),
+        checklist: syncChecklist(jenis, parsed.checklist ?? {}),
       };
     }
   } catch {
@@ -157,6 +160,7 @@ export default function App() {
   const showBast = pageMode === "both" || pageMode === "bast";
   const pageCount =
     (showTugas ? 2 : 0) + (showPenyerahan ? 1 : 0) + (showBast ? 1 : 0);
+  const validationIssues = validateData(data);
 
   let pageNo = 0;
   const nextPage = () => `Halaman ${++pageNo}`;
@@ -197,6 +201,32 @@ export default function App() {
               setJenis={setJenis}
               setChecklist={setChecklist}
             />
+            <div
+              className={`mt-3 rounded-lg border px-2.5 py-2 text-[11px] ${
+                validationIssues.length
+                  ? "border-amber-200 bg-amber-50 text-amber-800"
+                  : "border-emerald-200 bg-emerald-50 text-emerald-800"
+              }`}
+              role="status"
+            >
+              <p className="font-semibold">
+                {validationIssues.length
+                  ? `${validationIssues.length} validasi perlu diperiksa`
+                  : "Data siap dipreview dan dicetak"}
+              </p>
+              {validationIssues.length > 0 && (
+                <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                  {validationIssues.slice(0, 5).map((issue) => (
+                    <li key={`${issue.label}-${issue.message}`}>
+                      {issue.label}: {issue.message}
+                    </li>
+                  ))}
+                  {validationIssues.length > 5 && (
+                    <li>dan {validationIssues.length - 5} lainnya</li>
+                  )}
+                </ul>
+              )}
+            </div>
             <p className="mt-3 px-1 text-[10px] leading-relaxed text-slate-400">
               Tersimpan otomatis di browser. Saat mencetak pilih ukuran{" "}
               <b>F4 / Folio (215 × 330 mm)</b>, margin{" "}

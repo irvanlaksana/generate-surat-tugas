@@ -32,9 +32,16 @@ const HARI = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 
 function parse(iso: string): Date | null {
   if (!iso) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
   const parts = iso.split("-").map(Number);
-  if (parts.length !== 3 || parts.some((n) => Number.isNaN(n))) return null;
   const d = new Date(parts[0], parts[1] - 1, parts[2]);
+  if (
+    d.getFullYear() !== parts[0] ||
+    d.getMonth() !== parts[1] - 1 ||
+    d.getDate() !== parts[2]
+  ) {
+    return null;
+  }
   return Number.isNaN(d.getTime()) ? null : d;
 }
 

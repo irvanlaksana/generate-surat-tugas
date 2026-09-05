@@ -59,6 +59,10 @@ export const BLANK_DATA: BastData = {
   karoseri: "",
   labelMesinBenar: false,
   checklist: emptyChecklist("roda4"),
+  lampiran: {
+    ktp: [],
+    stnk: [],
+  },
   kop: {
     image: "",
     width: 170,

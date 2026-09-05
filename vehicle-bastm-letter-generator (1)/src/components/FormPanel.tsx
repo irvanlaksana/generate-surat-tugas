@@ -38,6 +38,31 @@ export default function FormPanel({ data, set, setJenis, setChecklist }: Props) 
   const dOpen = (main = false) => allOpen || main;
   const gk = (t: string) => `${t}-${groupKey}`;
 
+  const addLampiran = async (jenis: "ktp" | "stnk", files: FileList | null) => {
+    if (!files?.length) return;
+    const images = await Promise.all(
+      Array.from(files).map(
+        (file) =>
+          new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result));
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL(file);
+          }),
+      ),
+    );
+    set("lampiran", {
+      ...data.lampiran,
+      [jenis]: [...data.lampiran[jenis], ...images],
+    });
+  };
+
+  const removeLampiran = (jenis: "ktp" | "stnk", index: number) =>
+    set("lampiran", {
+      ...data.lampiran,
+      [jenis]: data.lampiran[jenis].filter((_, imageIndex) => imageIndex !== index),
+    });
+
   return (
     <div className="space-y-2">
       {/* ---------- Jenis kendaraan + kontrol grup ---------- */}
@@ -593,7 +618,68 @@ export default function FormPanel({ data, set, setJenis, setChecklist }: Props) 
         />
       </Section>
 
-      {/* ---------- 6. Lanjutan ---------- */}
+      {/* ---------- 6. Lampiran ---------- */}
+      <Section
+        key={gk("lp")}
+        title="Lampiran KTP & STNK"
+        icon="📎"
+        defaultOpen={dOpen()}
+        badge={
+          data.lampiran.ktp.length + data.lampiran.stnk.length > 0
+            ? `${data.lampiran.ktp.length + data.lampiran.stnk.length} foto`
+            : undefined
+        }
+      >
+        <div className="space-y-2">
+          {(["ktp", "stnk"] as const).map((jenis) => {
+            const label = jenis.toUpperCase();
+            return (
+              <div key={jenis} className="rounded-md border border-slate-200 bg-slate-50 p-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-semibold text-slate-700">Foto {label}</span>
+                  <label className="cursor-pointer rounded-md bg-indigo-600 px-2 py-1 text-[10px] font-semibold text-white transition hover:bg-indigo-700">
+                    ＋ Upload {label}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={(event) => {
+                        void addLampiran(jenis, event.target.files);
+                        event.currentTarget.value = "";
+                      }}
+                    />
+                  </label>
+                </div>
+                {data.lampiran[jenis].length > 0 ? (
+                  <div className="mt-2 grid grid-cols-2 gap-1.5">
+                    {data.lampiran[jenis].map((image, index) => (
+                      <div key={`${jenis}-${index}`} className="relative overflow-hidden rounded border border-slate-200 bg-white">
+                        <img src={image} alt={`${label} ${index + 1}`} className="h-20 w-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => removeLampiran(jenis, index)}
+                          className="absolute right-1 top-1 rounded bg-white/90 px-1.5 py-0.5 text-[10px] font-bold text-red-600 shadow-sm"
+                          title={`Hapus foto ${label} ${index + 1}`}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-1 text-[10px] text-slate-400">Belum ada foto.</p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <p className="mt-2 text-[10px] leading-relaxed text-slate-400">
+          Foto akan dicetak berurutan: KTP di atas, STNK di bawah. Pilih beberapa foto sekaligus atau upload bertahap.
+        </p>
+      </Section>
+
+      {/* ---------- 7. Lanjutan ---------- */}
       <Section
         key={gk("op")}
         title="Opsi & Kop BAST"

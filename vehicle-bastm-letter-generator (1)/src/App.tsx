@@ -5,6 +5,7 @@ import FormPanel from "./components/FormPanel";
 import SuratPenyerahan from "./components/SuratPenyerahan";
 import BastSheet from "./components/BastSheet";
 import { SuratTugasHal1, SuratTugasHal2 } from "./components/SuratTugas";
+import LampiranSheet from "./components/LampiranSheet";
 import PreviewStage, { PageCard } from "./components/PreviewStage";
 import { Btn } from "./components/ui";
 import { validateData } from "./lib/validation";
@@ -31,6 +32,12 @@ function loadInitial(): BastData {
         jenis,
         kop: { ...BLANK_DATA.kop, ...(parsed.kop ?? {}) },
         st: { ...BLANK_DATA.st, ...(parsed.st ?? {}) },
+        lampiran: {
+          ...BLANK_DATA.lampiran,
+          ...(parsed.lampiran ?? {}),
+          ktp: parsed.lampiran?.ktp ?? [],
+          stnk: parsed.lampiran?.stnk ?? [],
+        },
         checklist: syncChecklist(jenis, parsed.checklist ?? {}),
       };
     }
@@ -58,7 +65,11 @@ export default function App() {
         try {
           localStorage.setItem(
             STORAGE_KEY,
-            JSON.stringify({ ...data, kop: { ...data.kop, image: "" } }),
+            JSON.stringify({
+              ...data,
+              kop: { ...data.kop, image: "" },
+              lampiran: { ktp: [], stnk: [] },
+            }),
           );
         } catch {
           /* ignore */
@@ -155,11 +166,25 @@ export default function App() {
     setZoom((z) => Math.min(1.6, Math.max(0.2, +(z + d).toFixed(2))));
   };
 
+  const printDocument = () => {
+    const previousTitle = document.title;
+    const fileName = data.namaDebitur.trim().replace(/[^a-z0-9]+/gi, "-");
+    document.title = fileName || "surat-bast";
+    window.print();
+    window.setTimeout(() => {
+      document.title = previousTitle;
+    }, 1000);
+  };
+
   const showTugas = pageMode === "both" || pageMode === "tugas";
   const showPenyerahan = pageMode === "both" || pageMode === "penyerahan";
   const showBast = pageMode === "both" || pageMode === "bast";
+  const showLampiran = data.lampiran.ktp.length > 0 || data.lampiran.stnk.length > 0;
   const pageCount =
-    (showTugas ? 2 : 0) + (showPenyerahan ? 1 : 0) + (showBast ? 1 : 0);
+    (showTugas ? 2 : 0) +
+    (showPenyerahan ? 1 : 0) +
+    (showBast ? 1 : 0) +
+    (showLampiran ? 1 : 0);
   const validationIssues = validateData(data);
 
   let pageNo = 0;
@@ -189,7 +214,7 @@ export default function App() {
                 <Btn onClick={reset}>Reset</Btn>
               </div>
             </div>
-            <Btn variant="primary" className="mt-2 w-full" onClick={() => window.print()}>
+            <Btn variant="primary" className="mt-2 w-full" onClick={printDocument}>
               🖨️ Cetak / Simpan PDF
             </Btn>
           </div>
@@ -332,7 +357,7 @@ export default function App() {
             <Btn variant={focus ? "dark" : "ghost"} onClick={() => setFocus((f) => !f)}>
               {focus ? "⤡ Tampilkan Form" : "⤢ Layar Penuh"}
             </Btn>
-            <Btn variant="primary" onClick={() => window.print()}>
+            <Btn variant="primary" onClick={printDocument}>
               🖨️ Cetak
             </Btn>
           </div>
@@ -369,6 +394,11 @@ export default function App() {
                     }`}
                   >
                     <BastSheet data={data} />
+                  </PageCard>
+                )}
+                {showLampiran && (
+                  <PageCard label={nextPage()} badge="Lampiran KTP & STNK">
+                    <LampiranSheet data={data} />
                   </PageCard>
                 )}
               </div>

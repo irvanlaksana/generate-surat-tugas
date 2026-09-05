@@ -1,5 +1,10 @@
 export type VehicleType = "roda2" | "roda4";
 
+export interface LampiranData {
+  ktp: string[];
+  stnk: string[];
+}
+
 export type KopAlign = "left" | "center" | "right";
 
 export interface KopSurat {
@@ -101,6 +106,9 @@ export interface BastData {
   labelMesinBenar: boolean;
 
   checklist: ChecklistMap;
+
+  /* Lampiran dokumen */
+  lampiran: LampiranData;
 
   /* Surat Tugas */
   kop: KopSurat;

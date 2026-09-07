@@ -32,6 +32,7 @@ export const BLANK_DATA: BastData = {
   noPerjanjian: "",
   tglPerjanjian: "",
   namaDebitur: "",
+  kecamatan: "",
   bpkbAtasNama: "",
   kreditur: KREDITUR_DEFAULT,
   catatanKreditur: "",
@@ -86,6 +87,7 @@ export const BLANK_DATA: BastData = {
     nasabahNama: "ADE IRAWAN",
     nasabahAlamat: "PENGADEGAN RT 001 RW 004, PENGADEGAN, WANGON",
     jatuhTempo: "23 MARET 2018",
+    noAngsuran: "",
     angsuranNilai: "Rp. 652.000 / Rp. 11.736.000",
     denda: "Rp. 169.285.000",
     merkType: "HONDA / BeAT",
@@ -107,6 +109,7 @@ export const CONTOH_RODA4: BastData = {
   noPerjanjian: "040424210837",
   tglPerjanjian: "13-FEB-24",
   namaDebitur: "MARYANTO",
+  kecamatan: "WANGON",
   bpkbAtasNama: "SULASTRI",
   merekType: "HONDA / MINIBUS",
   noRangka: "MHRDD1750PJ407376",
@@ -121,6 +124,7 @@ export const CONTOH_RODA4: BastData = {
   penyelesaian: "TIDAK",
   karoseri: "Tidak Termasuk",
   checklist: emptyChecklist("roda4"),
+  st: { ...BLANK_DATA.st, noAngsuran: "12" },
 };
 
 export const CONTOH_RODA2: BastData = {
@@ -132,6 +136,7 @@ export const CONTOH_RODA2: BastData = {
   noPerjanjian: "040424210838",
   tglPerjanjian: "20-MAR-24",
   namaDebitur: "SUPRIYADI",
+  kecamatan: "SOKARAJA",
   bpkbAtasNama: "SUPRIYADI",
   merekType: "HONDA / BEAT CBS",
   noRangka: "MH1JM8118MK123456",
@@ -144,4 +149,5 @@ export const CONTOH_RODA2: BastData = {
   penyelesaian: "TIDAK",
   karoseri: "Tidak Termasuk",
   checklist: emptyChecklist("roda2"),
+  st: { ...BLANK_DATA.st, noAngsuran: "08" },
 };

@@ -1,10 +1,11 @@
 import { useRef } from "react";
 import type { KopAlign, KopSurat } from "../types";
-import { Check, Segmented } from "./ui";
+import { Check, Segmented, UploadBox } from "./ui";
 
 interface Props {
   kop: KopSurat;
   onChange: (k: KopSurat) => void;
+  warning?: string;
 }
 
 function Slider({
@@ -29,14 +30,15 @@ function Slider({
   return (
     <div>
       <div className="flex items-center gap-1">
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+        <span className="text-[9.5px] font-semibold uppercase tracking-wide text-slate-400">
           {label}
         </span>
-        <span className="ml-auto text-[10.5px] font-semibold tabular-nums text-slate-600">
+        <span className="ml-auto text-[10px] font-semibold tabular-nums text-slate-600">
           {value}
           {unit}
         </span>
         <button
+          type="button"
           onClick={onReset}
           title="Reset"
           className="text-[10px] text-slate-300 hover:text-slate-500"
@@ -46,8 +48,9 @@ function Slider({
       </div>
       <div className="flex items-center gap-1">
         <button
+          type="button"
           onClick={() => onChange(Math.max(min, +(value - step).toFixed(1)))}
-          className="h-5 w-5 shrink-0 rounded bg-slate-100 text-[12px] leading-none text-slate-600 hover:bg-slate-200"
+          className="h-4 w-4 shrink-0 rounded bg-slate-100 text-[11px] leading-none text-slate-600 hover:bg-slate-200"
         >
           −
         </button>
@@ -61,8 +64,9 @@ function Slider({
           className="h-1 flex-1 accent-indigo-600"
         />
         <button
+          type="button"
           onClick={() => onChange(Math.min(max, +(value + step).toFixed(1)))}
-          className="h-5 w-5 shrink-0 rounded bg-slate-100 text-[12px] leading-none text-slate-600 hover:bg-slate-200"
+          className="h-4 w-4 shrink-0 rounded bg-slate-100 text-[11px] leading-none text-slate-600 hover:bg-slate-200"
         >
           +
         </button>
@@ -71,7 +75,7 @@ function Slider({
   );
 }
 
-export default function KopEditor({ kop, onChange }: Props) {
+export default function KopEditor({ kop, onChange, warning }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const set = (patch: Partial<KopSurat>) => onChange({ ...kop, ...patch });
 
@@ -83,55 +87,54 @@ export default function KopEditor({ kop, onChange }: Props) {
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       {/* upload area */}
       {kop.image ? (
         <div className="rounded-md border border-slate-200 bg-slate-50 p-1.5">
           <img
             src={kop.image}
-            alt="Kop"
+            alt="Kop Surat"
             className="mx-auto max-h-16 w-auto object-contain"
           />
-          <div className="mt-1.5 flex gap-1">
+          <div className="mt-1 flex gap-1">
             <button
+              type="button"
               onClick={() => fileRef.current?.click()}
-              className="flex-1 rounded bg-white px-2 py-1 text-[11px] font-medium text-slate-600 ring-1 ring-slate-200 hover:text-slate-900"
+              className="flex-1 rounded bg-white px-2 py-[3px] text-[11px] font-medium text-slate-600 ring-1 ring-slate-200 transition hover:text-slate-900"
             >
               Ganti
             </button>
             <button
+              type="button"
               onClick={() => set({ image: "" })}
-              className="flex-1 rounded bg-white px-2 py-1 text-[11px] font-medium text-rose-500 ring-1 ring-slate-200 hover:bg-rose-50"
+              className="flex-1 rounded bg-white px-2 py-[3px] text-[11px] font-medium text-rose-500 ring-1 ring-slate-200 transition hover:bg-rose-50"
             >
               Hapus
             </button>
           </div>
         </div>
       ) : (
-        <button
-          onClick={() => fileRef.current?.click()}
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={(e) => {
-            e.preventDefault();
-            pick(e.dataTransfer.files?.[0]);
-          }}
-          className="flex w-full flex-col items-center gap-0.5 rounded-md border border-dashed border-slate-300 bg-slate-50 py-3 text-slate-400 transition hover:border-indigo-400 hover:text-indigo-500"
-        >
-          <span className="text-lg leading-none">🖼️</span>
-          <span className="text-[11px] font-medium">Upload Kop Surat</span>
-          <span className="text-[9.5px]">klik / seret gambar (PNG, JPG)</span>
-        </button>
+        <UploadBox
+          label="Upload Kop Surat"
+          hint={warning ?? "klik / seret gambar (PNG, JPG)"}
+          icon="🖼️"
+          invalid={!!warning}
+          onFiles={(files) => pick(files?.[0])}
+        />
       )}
       <input
         ref={fileRef}
         type="file"
         accept="image/*"
         className="hidden"
-        onChange={(e) => pick(e.target.files?.[0])}
+        onChange={(e) => {
+          pick(e.target.files?.[0]);
+          e.currentTarget.value = "";
+        }}
       />
 
       {kop.image && (
-        <>
+        <div className="space-y-1">
           <Slider
             label="Ukuran (lebar)"
             value={kop.width}
@@ -158,7 +161,7 @@ export default function KopEditor({ kop, onChange }: Props) {
           />
 
           <div>
-            <span className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+            <span className="mb-[1px] block text-[9.5px] font-semibold uppercase tracking-wide text-slate-400">
               Perataan
             </span>
             <Segmented<KopAlign>
@@ -183,44 +186,44 @@ export default function KopEditor({ kop, onChange }: Props) {
               Tampilkan kop di halaman 2
             </Check>
           </div>
-        </>
+        </div>
       )}
 
       {/* ---------- POSISI ISI SURAT ---------- */}
-      <div className="rounded-md border border-indigo-100 bg-indigo-50/50 p-2">
+      <div className="rounded-md border border-indigo-100 bg-indigo-50/50 p-1.5">
         <div className="mb-1 flex items-center gap-1">
-          <span className="text-[10px] font-bold uppercase tracking-wide text-indigo-500">
+          <span className="text-[9.5px] font-bold uppercase tracking-wide text-indigo-500">
             Posisi Isi Surat
           </span>
-          <span className="ml-auto text-[9.5px] text-slate-400">
-            menyesuaikan kop
-          </span>
+          <span className="ml-auto text-[9px] text-slate-400">menyesuaikan kop</span>
         </div>
 
-        <div className="mb-1.5 grid grid-cols-2 gap-1">
+        <div className="mb-1 grid grid-cols-2 gap-1">
           <button
+            type="button"
             onClick={() => set({ kontenY: Math.max(-60, kop.kontenY - 2) })}
-            className="rounded bg-white py-1 text-[11px] font-semibold text-indigo-600 ring-1 ring-indigo-200 hover:bg-indigo-100"
+            className="rounded bg-white py-[3px] text-[10.5px] font-semibold text-indigo-600 ring-1 ring-indigo-200 transition hover:bg-indigo-100"
           >
             ↑ Naikkan
           </button>
           <button
+            type="button"
             onClick={() => set({ kontenY: Math.min(60, kop.kontenY + 2) })}
-            className="rounded bg-white py-1 text-[11px] font-semibold text-indigo-600 ring-1 ring-indigo-200 hover:bg-indigo-100"
+            className="rounded bg-white py-[3px] text-[10.5px] font-semibold text-indigo-600 ring-1 ring-indigo-200 transition hover:bg-indigo-100"
           >
             ↓ Turunkan
           </button>
         </div>
 
-        <Slider
-          label="Halaman 1"
-          value={kop.kontenY}
-          min={-60}
-          max={60}
-          onChange={(v) => set({ kontenY: v })}
-          onReset={() => set({ kontenY: 0 })}
-        />
-        <div className="mt-1">
+        <div className="space-y-1">
+          <Slider
+            label="Halaman 1"
+            value={kop.kontenY}
+            min={-60}
+            max={60}
+            onChange={(v) => set({ kontenY: v })}
+            onReset={() => set({ kontenY: 0 })}
+          />
           <Slider
             label="Halaman 2"
             value={kop.kontenY2}
@@ -231,16 +234,18 @@ export default function KopEditor({ kop, onChange }: Props) {
           />
         </div>
 
-        <div className="mt-1.5 flex gap-1">
+        <div className="mt-1 flex gap-1">
           <button
+            type="button"
             onClick={() => set({ kontenY: -12, kontenY2: 0 })}
-            className="flex-1 rounded bg-white py-1 text-[10px] font-medium text-slate-600 ring-1 ring-slate-200 hover:text-indigo-600"
+            className="flex-1 rounded bg-white py-[3px] text-[10px] font-medium text-slate-600 ring-1 ring-slate-200 transition hover:text-indigo-600"
           >
             Rapat ke kop
           </button>
           <button
+            type="button"
             onClick={() => set({ kontenY: 0, kontenY2: 0 })}
-            className="flex-1 rounded bg-white py-1 text-[10px] font-medium text-slate-600 ring-1 ring-slate-200 hover:text-indigo-600"
+            className="flex-1 rounded bg-white py-[3px] text-[10px] font-medium text-slate-600 ring-1 ring-slate-200 transition hover:text-indigo-600"
           >
             ↺ Normal
           </button>

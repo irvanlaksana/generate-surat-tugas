@@ -1,70 +1,24 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
-/* ---------------- Section (compact animated accordion) ---------------- */
-export function Section({
-  title,
-  icon,
+/* ---------------- Penanda grup (aliran form, bukan panel terpisah) -------- */
+export function GroupTitle({
   children,
-  defaultOpen = true,
   hint,
-  badge,
 }: {
-  title: string;
-  icon?: string;
   children: React.ReactNode;
-  defaultOpen?: boolean;
   hint?: string;
-  badge?: string;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-shadow duration-200 hover:shadow-[0_3px_10px_-2px_rgba(15,23,42,0.12)]">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="group flex w-full items-center gap-2 px-2.5 py-2 text-left transition-colors hover:bg-slate-50"
-      >
-        {icon && (
-          <span className="text-[13px] leading-none transition-transform duration-200 group-hover:scale-110">
-            {icon}
-          </span>
-        )}
-        <span className="text-[12px] font-semibold tracking-tight text-slate-800">
-          {title}
+    <div className="flex items-center gap-2 pt-1.5">
+      <span className="whitespace-nowrap text-[9.5px] font-bold uppercase tracking-[0.14em] text-slate-400">
+        {children}
+      </span>
+      {hint && (
+        <span className="truncate text-[9.5px] font-medium text-slate-300">
+          {hint}
         </span>
-        {badge && (
-          <span className="rounded-full bg-indigo-50 px-1.5 py-[1px] text-[9px] font-bold uppercase tracking-wide text-indigo-500">
-            {badge}
-          </span>
-        )}
-        {hint && (
-          <span className="truncate text-[10.5px] font-normal text-slate-400">
-            {hint}
-          </span>
-        )}
-        <svg
-          className={`ml-auto shrink-0 text-slate-300 transition-all duration-300 group-hover:text-slate-500 ${
-            open ? "rotate-180" : ""
-          }`}
-          width="12"
-          height="12"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="3"
-        >
-          <path d="M6 9l6 6 6-6" />
-        </svg>
-      </button>
-      <div
-        className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${
-          open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-        }`}
-      >
-        <div className="overflow-hidden">
-          <div className="border-t border-slate-100 px-2.5 py-2.5">{children}</div>
-        </div>
-      </div>
+      )}
+      <span className="h-px flex-1 bg-slate-200" />
     </div>
   );
 }
@@ -78,43 +32,82 @@ export function Grid({
   children: React.ReactNode;
 }) {
   const map = { 1: "grid-cols-1", 2: "grid-cols-2", 3: "grid-cols-3" } as const;
-  return <div className={`grid gap-2 ${map[cols]}`}>{children}</div>;
+  return <div className={`grid gap-1.5 ${map[cols]}`}>{children}</div>;
 }
 
 /* ---------------- Field ---------------- */
 export function Field({
   label,
   hint,
+  warn,
+  error,
+  required,
   span,
+  name,
   children,
 }: {
   label: string;
   hint?: string;
+  warn?: string;
+  error?: string;
+  required?: boolean;
   span?: boolean;
+  /** kunci data untuk scroll & fokus saat validasi gagal */
+  name?: string;
   children: React.ReactNode;
 }) {
   return (
-    <label className={`block min-w-0 ${span ? "col-span-full" : ""}`}>
-      <span className="mb-0.5 block truncate text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-        {label}
+    <label
+      data-field={name}
+      className={`block min-w-0 ${span ? "col-span-full" : ""}`}
+    >
+      <span className="mb-[1px] flex items-center gap-1 truncate text-[9.5px] font-semibold uppercase tracking-wide text-slate-400">
+        <span className="truncate">{label}</span>
+        {required && <span className="text-rose-400">*</span>}
+        {warn && !error && (
+          <span className="ml-auto shrink-0 truncate text-[9px] font-medium normal-case tracking-normal text-amber-500">
+            {warn}
+          </span>
+        )}
       </span>
       {children}
-      {hint && <span className="mt-0.5 block text-[10px] text-slate-400">{hint}</span>}
+      {error ? (
+        <span className="mt-[1px] block text-[9.5px] font-medium text-rose-500">
+          {error}
+        </span>
+      ) : hint ? (
+        <span className="mt-[1px] block truncate text-[9.5px] text-slate-400">
+          {hint}
+        </span>
+      ) : null}
     </label>
   );
 }
 
-const inputCls =
-  "w-full rounded-md border border-slate-200 bg-white px-2 py-1 text-[12.5px] text-slate-800 outline-none transition placeholder:text-slate-300 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100";
+/* ---------------- Input ---------------- */
+const inputBase =
+  "w-full rounded-md border bg-white px-2 py-[3px] text-[12px] leading-[1.35] text-slate-800 outline-none transition placeholder:text-slate-300";
+
+const inputOk =
+  "border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100";
+
+const inputBad =
+  "border-rose-300 bg-rose-50/50 focus:border-rose-400 focus:ring-2 focus:ring-rose-100";
 
 export function TextInput(
-  props: React.InputHTMLAttributes<HTMLInputElement> & { upper?: boolean },
+  props: React.InputHTMLAttributes<HTMLInputElement> & {
+    upper?: boolean;
+    invalid?: boolean;
+  },
 ) {
-  const { upper, className, onChange, ...rest } = props;
+  const { upper, className, onChange, invalid, ...rest } = props;
   return (
     <input
       {...rest}
-      className={`${inputCls} ${upper ? "uppercase" : ""} ${className ?? ""}`}
+      aria-invalid={invalid || undefined}
+      className={`${inputBase} ${invalid ? inputBad : inputOk} ${
+        upper ? "uppercase" : ""
+      } ${className ?? ""}`}
       onChange={(e) => {
         if (upper) e.target.value = e.target.value.toUpperCase();
         onChange?.(e);
@@ -123,12 +116,19 @@ export function TextInput(
   );
 }
 
-export function TextArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  const { className, ...rest } = props;
+export function TextArea(
+  props: React.TextareaHTMLAttributes<HTMLTextAreaElement> & {
+    invalid?: boolean;
+  },
+) {
+  const { className, invalid, ...rest } = props;
   return (
     <textarea
       {...rest}
-      className={`${inputCls} resize-y leading-snug ${className ?? ""}`}
+      aria-invalid={invalid || undefined}
+      className={`${inputBase} resize-y leading-snug ${
+        invalid ? inputBad : inputOk
+      } ${className ?? ""}`}
     />
   );
 }
@@ -150,7 +150,7 @@ export function Segmented<T extends string>({
           key={o.value}
           type="button"
           onClick={() => onChange(o.value)}
-          className={`flex-1 truncate rounded px-1.5 py-1 text-[11.5px] font-medium transition ${
+          className={`flex-1 truncate rounded px-1.5 py-[3px] text-[11px] font-medium transition ${
             value === o.value
               ? "bg-white text-indigo-600 shadow-sm"
               : "text-slate-500 hover:text-slate-700"
@@ -174,15 +174,104 @@ export function Check({
   children: React.ReactNode;
 }) {
   return (
-    <label className="flex cursor-pointer items-center gap-1.5 py-0.5">
+    <label className="flex cursor-pointer items-center gap-1.5 py-[1px]">
       <input
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="h-3.5 w-3.5 shrink-0 accent-indigo-600"
+        className="h-3 w-3 shrink-0 accent-indigo-600"
       />
-      <span className="text-[11.5px] leading-snug text-slate-600">{children}</span>
+      <span className="text-[11px] leading-snug text-slate-600">{children}</span>
     </label>
+  );
+}
+
+/* ---------------- Upload box (klik / seret) ---------------- */
+export function UploadBox({
+  label,
+  hint,
+  images,
+  onFiles,
+  onRemove,
+  invalid,
+  icon = "⬆",
+}: {
+  label: string;
+  hint?: string;
+  images?: string[];
+  onFiles: (files: FileList | null) => void;
+  onRemove?: (index: number) => void;
+  invalid?: boolean;
+  icon?: string;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  const [over, setOver] = useState(false);
+
+  return (
+    <div className="min-w-0">
+      <button
+        type="button"
+        onClick={() => ref.current?.click()}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setOver(true);
+        }}
+        onDragLeave={() => setOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setOver(false);
+          onFiles(e.dataTransfer.files);
+        }}
+        className={`flex w-full flex-col items-center justify-center gap-[1px] rounded-md border border-dashed px-1 py-2 text-center transition ${
+          over
+            ? "border-indigo-400 bg-indigo-50 text-indigo-600"
+            : invalid
+              ? "border-rose-300 bg-rose-50/60 text-rose-400 hover:border-rose-400"
+              : "border-slate-300 bg-slate-50 text-slate-400 hover:border-indigo-400 hover:text-indigo-500"
+        }`}
+      >
+        <span className="text-[14px] leading-none">{icon}</span>
+        <span className="text-[10.5px] font-semibold">{label}</span>
+        <span className="text-[9px] leading-tight">
+          {hint ?? "klik / seret gambar"}
+        </span>
+      </button>
+      <input
+        ref={ref}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          onFiles(e.target.files);
+          e.currentTarget.value = "";
+        }}
+      />
+      {!!images?.length && (
+        <div className="mt-1 grid grid-cols-3 gap-1">
+          {images.map((src, index) => (
+            <div
+              key={`${label}-${index}`}
+              className="relative overflow-hidden rounded border border-slate-200 bg-white"
+            >
+              <img
+                src={src}
+                alt={`${label} ${index + 1}`}
+                className="h-12 w-full object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => onRemove?.(index)}
+                title={`Hapus ${label} ${index + 1}`}
+                className="absolute right-0.5 top-0.5 rounded bg-white/90 px-1 text-[10px] font-bold leading-4 text-rose-600 shadow-sm transition hover:bg-rose-600 hover:text-white"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

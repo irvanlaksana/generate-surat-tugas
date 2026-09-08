@@ -21,7 +21,10 @@ export default function LampiranSheet({ data }: { data: BastData }) {
   return (
     <div className="sheet sheet-lampiran">
       <h1>LAMPIRAN DOKUMEN</h1>
-      <p className="attachment-debitur">Nama Debitur: {data.namaDebitur || "-"}</p>
+      <p className="attachment-debitur">
+        Nama Debitur: {data.namaDebitur || "-"}
+        {data.kecamatan.trim() ? ` · Kec. ${data.kecamatan.trim()}` : ""}
+      </p>
       <FotoGroup label="KTP" images={data.lampiran.ktp} />
       <FotoGroup label="STNK" images={data.lampiran.stnk} />
     </div>

@@ -31,6 +31,7 @@ export interface SuratTugasData {
   nasabahNama: string;
   nasabahAlamat: string;
   jatuhTempo: string;
+  noAngsuran: string; // nomor / urutan angsuran yang menunggak
   angsuranNilai: string;
   denda: string;
   merkType: string;
@@ -70,6 +71,7 @@ export interface BastData {
   noPerjanjian: string;
   tglPerjanjian: string;
   namaDebitur: string;
+  kecamatan: string; // kecamatan debitur — dipakai di nama file PDF
   bpkbAtasNama: string;
 
   /* Catatan kreditur */

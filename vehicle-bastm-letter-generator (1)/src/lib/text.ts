@@ -30,6 +30,36 @@ export function initialsOf(name: string, max = 5): string {
   return s.slice(0, max) || "XX";
 }
 
+/** Bersihkan teks jadi bagian nama file yang aman: huruf/angka saja, "-" pemisah. */
+export function slugify(value: string): string {
+  return (value || "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .toUpperCase();
+}
+
+/**
+ * Nama file PDF hasil cetak:
+ *   {inisial kreditur}-{nama debitur}-{kecamatan}
+ * Contoh: KAMM-MARYANTO-WANGON
+ * Bagian yang kosong diganti penanda agar format tetap 3 bagian.
+ */
+export function pdfFileName(data: {
+  kreditur: string;
+  namaDebitur: string;
+  kecamatan: string;
+}): string {
+  const kreditur =
+    data.kreditur.trim() && initialsOf(data.kreditur)
+      ? initialsOf(data.kreditur)
+      : "KREDITUR";
+  const debitur = slugify(data.namaDebitur) || "NAMA-DEBITUR";
+  const kecamatan = slugify(data.kecamatan) || "KECAMATAN";
+  return [slugify(kreditur), debitur, kecamatan].join("-");
+}
+
 const SEQ_KEY = "bast-st-seq-v1";
 
 /** Jumlah Surat Tugas yang sudah dibuat untuk tanggal tertentu (tanpa menambah). */

@@ -109,6 +109,15 @@ export function SuratTugasHal1({ data }: { data: BastData }) {
   const s = { ...data.st, perusahaan: data.mitraNama || data.st.perusahaan };
   const kreditur = data.kreditur;
 
+  /** Alamat nasabah + kecamatan (kecamatan hanya ditambah bila belum ada) */
+  const kec = data.kecamatan.trim().toUpperCase();
+  const alamatNasabah = [
+    s.nasabahAlamat.trim(),
+    kec && !s.nasabahAlamat.toUpperCase().includes(kec) ? `Kec. ${kec}` : "",
+  ]
+    .filter(Boolean)
+    .join(", ");
+
   const cell: React.CSSProperties = {
     border: "1px solid #d0d0d0",
     padding: "1.6mm 2.5mm",
@@ -202,8 +211,11 @@ export function SuratTugasHal1({ data }: { data: BastData }) {
         <div>Berikut data nasabah :</div>
         <Row label="No. Kontrak" value={s.noKontrak} />
         <Row label="Nama" value={s.nasabahNama} />
-        <Row label="Alamat" value={s.nasabahAlamat} />
+        <Row label="Alamat" value={alamatNasabah} />
         <Row label="Tanggal Jatuh Tempo" value={s.jatuhTempo} />
+        {!!s.noAngsuran.trim() && (
+          <Row label="No. Angsuran" value={s.noAngsuran} />
+        )}
         <Row label="Angsuran / Total" value={s.angsuranNilai} />
         <Row label="DENDA" value={s.denda} />
       </div>

@@ -123,10 +123,12 @@ export default function SuratTugasForm({ data, set, issues }: Props) {
           <PetugasDropdown
             value={data.st.petugasNama}
             onChange={(nama, nik) => {
-              st("petugasNama", nama)
-              if (nik) {
-                st("petugasNik", nik)
-              }
+              // Update together so the NIK update cannot overwrite the selected name.
+              set("st", {
+                ...data.st,
+                petugasNama: nama,
+                petugasNik: nik ?? data.st.petugasNik,
+              });
             }}
           />
         </Field>

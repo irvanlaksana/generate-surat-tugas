@@ -5,7 +5,7 @@
  * menampung data yang dipakai bersama.
  */
 
-export type ModuleId = "umum" | "tugas" | "penyerahan" | "bast" | "lampiran";
+export type ModuleId = "umum" | "tugas" | "penyerahan" | "bast" | "lampiran" | "debitur";
 export type RouteId = "home" | ModuleId;
 
 export interface ModuleMeta {
@@ -67,6 +67,15 @@ export const MODULES: ModuleMeta[] = [
     tile: "from-sky-500 to-blue-600",
     filePrefix: "LAMPIRAN",
   },
+  {
+    id: "debitur",
+    label: "Manajemen Debitur",
+    short: "Debitur",
+    icon: "👥",
+    desc: "Manajemen data debitur dan petugas penagihan dengan database Supabase.",
+    tile: "from-purple-500 to-pink-600",
+    filePrefix: "DEBITUR",
+  },
 ];
 
 export const MODULE_BY_ID: Record<ModuleId, ModuleMeta> = {
@@ -75,6 +84,7 @@ export const MODULE_BY_ID: Record<ModuleId, ModuleMeta> = {
   penyerahan: MODULES[2],
   bast: MODULES[3],
   lampiran: MODULES[4],
+  debitur: MODULES[5],
 };
 
 /**

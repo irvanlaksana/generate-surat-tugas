@@ -2,6 +2,7 @@ import type { BastData, SuratTugasData } from "../../types";
 import { countForDate, generateNomorST, nextCountForDate } from "../../lib/text";
 import type { ValidationIssue } from "../../lib/validation";
 import { Field, Grid, GroupTitle, TextArea, TextInput } from "../ui";
+import { PetugasDropdown } from "../ui/PetugasDropdown";
 import { useIssueMaps } from "./formkit";
 
 interface Props {
@@ -119,12 +120,14 @@ export default function SuratTugasForm({ data, set, issues }: Props) {
           name="st.petugasNama"
           error={E("st.petugasNama")}
         >
-          <TextInput
-            upper
-            invalid={!!E("st.petugasNama")}
+          <PetugasDropdown
             value={data.st.petugasNama}
-            placeholder="DIAN FITRIANINGSIH"
-            onChange={(e) => st("petugasNama", e.target.value)}
+            onChange={(nama, nik) => {
+              st("petugasNama", nama)
+              if (nik) {
+                st("petugasNik", nik)
+              }
+            }}
           />
         </Field>
         <Field label="NIK Petugas" name="st.petugasNik" error={E("st.petugasNik")}>

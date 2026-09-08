@@ -7,7 +7,7 @@ Surat Tugas:
 
 - Pemilihan petugas lewat dropdown dengan pencarian (nama / NIK).
 - Tombol **+ Tambah** untuk menambah petugas baru langsung dari form Surat Tugas.
-- **NIK 16 digit digenerate otomatis** dan dijamin unik (bentrok NIK ditangani otomatis).
+- **NIK 16 digit diisi manual**; NIK duplikat ditolak tanpa mengubah input.
 - Data tersimpan **permanen** dan tetap ada setelah halaman dimuat ulang.
 
 ## Mode Penyimpanan
@@ -22,8 +22,8 @@ Indikator mode aktif ditampilkan pada dialog tambah petugas.
 ## Menambah Petugas
 
 1. Buka modul **Surat Tugas** → bagian **Petugas**.
-2. Klik **+ Tambah**, isi nama (wajib) dan jabatan (opsional).
-3. Klik **Simpan** — NIK muncul otomatis dan petugas langsung terpilih.
+2. Klik **+ Tambah**, isi nama dan NIK 16 digit (wajib), serta jabatan (opsional).
+3. Klik **Simpan** — NIK disimpan sesuai input dan petugas langsung terpilih.
 
 Bila penyimpanan gagal, pesan error yang jelas ditampilkan di dialog — tidak
 pernah gagal secara diam-diam.

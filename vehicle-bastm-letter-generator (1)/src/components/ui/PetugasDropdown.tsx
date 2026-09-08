@@ -3,7 +3,6 @@ import type { PetugasPenagihan } from '../../lib/supabase'
 import {
   fetchPetugasPenagihan,
   addPetugas,
-  generateNIK,
   getStorageMode,
 } from '../../lib/supabase'
 
@@ -43,7 +42,7 @@ function Btn({
 }
 
 /**
- * Dropdown component for selecting Petugas Penagihan with automatic NIK assignment.
+ * Dropdown component for selecting Petugas Penagihan with manually entered NIK.
  * Each petugas has their own unique NIK. Data tersimpan permanen di browser
  * (localStorage) atau ke Supabase bila dikonfigurasi.
  */
@@ -52,7 +51,7 @@ export function PetugasDropdown({ value, onChange, disabled, className }: Petuga
   const [isLoading, setIsLoading] = useState(true)
   const [isOpen, setIsOpen] = useState(false)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [newPetugas, setNewPetugas] = useState({ nama: '', jabatan: '' })
+  const [newPetugas, setNewPetugas] = useState({ nama: '', nik: '', jabatan: '' })
   const [isSaving, setIsSaving] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
   const [loadError, setLoadError] = useState('')
@@ -104,6 +103,7 @@ export function PetugasDropdown({ value, onChange, disabled, className }: Petuga
     try {
       const result = await addPetugas({
         nama: newPetugas.nama,
+        nik: newPetugas.nik,
         jabatan: newPetugas.jabatan || 'Petugas Penagihan',
         mitra_id: null,
         aktif: true,
@@ -113,7 +113,7 @@ export function PetugasDropdown({ value, onChange, disabled, className }: Petuga
         [...prev, result].sort((a, b) => a.nama.localeCompare(b.nama)),
       )
       onChange(result.nama, result.nik)
-      setNewPetugas({ nama: '', jabatan: '' })
+      setNewPetugas({ nama: '', nik: '', jabatan: '' })
       setErrorMsg('')
       setIsDialogOpen(false)
     } catch (error) {
@@ -247,7 +247,7 @@ export function PetugasDropdown({ value, onChange, disabled, className }: Petuga
           <div className="w-full max-w-sm rounded-lg bg-white shadow-xl">
             <div className="px-4 py-3 border-b border-slate-200">
               <h3 className="text-lg font-semibold text-slate-900">Tambah Petugas Penagihan</h3>
-              <p className="text-sm text-slate-500">NIK akan digenerate otomatis</p>
+              <p className="text-sm text-slate-500">Isi NIK petugas secara manual (16 digit)</p>
             </div>
 
             <div className="p-4 space-y-3">
@@ -285,11 +285,26 @@ export function PetugasDropdown({ value, onChange, disabled, className }: Petuga
                 />
               </div>
 
-              <div className="text-xs text-slate-400">
-                NIK yang akan digenerate:{' '}
-                <span className="font-mono font-medium">
-                  {generateNIK(newPetugas.nama || 'NEW')}
-                </span>
+              <div>
+                <label htmlFor="new-petugas-nik" className="block text-[10px] font-medium text-slate-500 uppercase tracking-wide mb-1">
+                  NIK (wajib)
+                </label>
+                <input
+                  id="new-petugas-nik"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={16}
+                  required
+                  pattern="[0-9]{16}"
+                  value={newPetugas.nik}
+                  onChange={(e) => setNewPetugas((prev) => ({ ...prev, nik: e.target.value }))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleAddPetugas()
+                  }}
+                  placeholder="Masukkan 16 digit NIK"
+                  disabled={isSaving}
+                  className="w-full rounded-md border border-slate-200 px-2 py-1.5 text-[12px] focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-100"
+                />
               </div>
 
               {errorMsg && (
@@ -317,7 +332,7 @@ export function PetugasDropdown({ value, onChange, disabled, className }: Petuga
               <Btn
                 variant="primary"
                 onClick={handleAddPetugas}
-                disabled={!newPetugas.nama.trim() || isSaving}
+                disabled={!newPetugas.nama.trim() || !/^[0-9]{16}$/.test(newPetugas.nik) || isSaving}
                 className="text-[11px]"
               >
                 {isSaving ? 'Menyimpan…' : 'Simpan'}

@@ -1,5 +1,6 @@
 import type { BastData } from "../types";
 import { hariTanggal } from "./format";
+import type { ModuleId } from "./modules";
 
 export type IssueLevel = "error" | "warning";
 
@@ -9,6 +10,8 @@ export interface ValidationIssue {
   label: string;
   message: string;
   level: IssueLevel;
+  /** modul dokumen yang terdampak masalah ini (untuk gerbang cetak per modul) */
+  modules: ModuleId[];
 }
 
 /** Ambil nilai string dari data, termasuk path bertingkat "st.nomor". */
@@ -21,41 +24,165 @@ function valueOf(data: BastData, path: string): string {
   return typeof v === "string" ? v : "";
 }
 
-/** Field wajib: [path, label] */
-const REQUIRED: [string, string][] = [
-  ["noBast", "No. BAST"],
-  ["tanggalBast", "Tanggal BAST"],
-  ["noPerjanjian", "No. Perjanjian"],
-  ["namaDebitur", "Nama Debitur"],
-  ["kecamatan", "Kecamatan"],
-  ["merekType", "Merk / Type kendaraan"],
-  ["noPolisi", "No. Polisi"],
-  ["mitraNama", "Nama perusahaan mitra"],
-  ["st.nomor", "Nomor Surat"],
-  ["st.petugasNama", "Petugas Surat Tugas"],
-  ["st.nasabahNama", "Nama nasabah Surat Tugas"],
-  ["st.tanggalSuratISO", "Tanggal Surat Tugas"],
-];
+/** Apakah field kosong / belum ada isinya? */
+function isEmpty(data: BastData, path: string): boolean {
+  if (path === "kop.image") return !data.kop.image;
+  if (path === "lampiran.ktp") return data.lampiran.ktp.length === 0;
+  if (path === "lampiran.stnk") return data.lampiran.stnk.length === 0;
+  return !valueOf(data, path).trim();
+}
 
-/** Field yang sebaiknya ada, tapi tidak menghalangi cetak: [path, label, pesan] */
-const RECOMMENDED: [string, string, string][] = [
-  ["noSuratTugas", "No. Surat Tugas", "dicetak di kaki BAST"],
-  ["tglPerjanjian", "Tgl. Perjanjian", "masih kosong"],
-  ["bpkbAtasNama", "STNK/BPKB a/n", "masih kosong"],
-  ["st.noKontrak", "No. Kontrak", "masih kosong"],
-  ["st.noAngsuran", "No. Angsuran", "masih kosong"],
-  ["kop.image", "Kop surat", "belum diupload"],
-  ["lampiran.ktp", "Foto KTP", "belum ada"],
-  ["lampiran.stnk", "Foto STNK", "belum ada"],
+interface Rule {
+  path: string;
+  label: string;
+  level: IssueLevel;
+  /** modul dokumen yang terdampak bila field ini bermasalah */
+  modules: ModuleId[];
+  message?: string;
+}
+
+const WAJIB = "wajib diisi";
+
+/**
+ * Aturan validasi. Field yang sama bisa berdampak ke beberapa modul
+ * (mis. No. Perjanjian dipakai Surat Penyerahan dan BAST).
+ */
+const RULES: Rule[] = [
+  /* ---------- wajib ---------- */
+  { path: "noBast", label: "No. BAST", level: "error", modules: ["bast"] },
+  { path: "tanggalBast", label: "Tanggal BAST", level: "error", modules: ["bast"] },
+  {
+    path: "noPerjanjian",
+    label: "No. Perjanjian",
+    level: "error",
+    modules: ["penyerahan", "bast"],
+  },
+  {
+    path: "namaDebitur",
+    label: "Nama Debitur",
+    level: "error",
+    modules: ["umum", "bast", "lampiran"],
+  },
+  {
+    path: "namaDebitur",
+    label: "Nama Debitur",
+    level: "warning",
+    modules: ["tugas", "penyerahan"],
+    message: "untuk nama file PDF",
+  },
+  { path: "kecamatan", label: "Kecamatan", level: "error", modules: ["umum"] },
+  {
+    path: "kecamatan",
+    label: "Kecamatan",
+    level: "warning",
+    modules: ["tugas", "penyerahan", "bast", "lampiran"],
+    message: "dipakai di nama file PDF",
+  },
+  {
+    path: "merekType",
+    label: "Merk / Type kendaraan",
+    level: "error",
+    modules: ["umum", "penyerahan", "bast"],
+  },
+  {
+    path: "noPolisi",
+    label: "No. Polisi",
+    level: "error",
+    modules: ["umum", "penyerahan", "bast"],
+  },
+  {
+    path: "mitraNama",
+    label: "Nama perusahaan mitra",
+    level: "error",
+    modules: ["umum", "tugas", "bast"],
+  },
+  { path: "st.nomor", label: "Nomor Surat", level: "error", modules: ["tugas"] },
+  {
+    path: "st.petugasNama",
+    label: "Petugas Surat Tugas",
+    level: "error",
+    modules: ["tugas"],
+  },
+  { path: "st.nasabahNama", label: "Nama nasabah", level: "error", modules: ["tugas"] },
+  {
+    path: "st.tanggalSuratISO",
+    label: "Tanggal Surat",
+    level: "error",
+    modules: ["tugas"],
+  },
+
+  /* ---------- anjuran ---------- */
+  {
+    path: "noSuratTugas",
+    label: "No. Surat Tugas",
+    level: "warning",
+    modules: ["bast"],
+    message: "dicetak di kaki BAST",
+  },
+  {
+    path: "tglPerjanjian",
+    label: "Tgl. Perjanjian",
+    level: "warning",
+    modules: ["penyerahan", "bast"],
+    message: "masih kosong",
+  },
+  {
+    path: "bpkbAtasNama",
+    label: "STNK/BPKB a/n",
+    level: "warning",
+    modules: ["penyerahan", "bast"],
+    message: "masih kosong",
+  },
+  {
+    path: "st.noKontrak",
+    label: "No. Kontrak",
+    level: "warning",
+    modules: ["tugas"],
+    message: "masih kosong",
+  },
+  {
+    path: "st.noAngsuran",
+    label: "No. Angsuran",
+    level: "warning",
+    modules: ["tugas"],
+    message: "masih kosong",
+  },
+  {
+    path: "kop.image",
+    label: "Kop surat",
+    level: "warning",
+    modules: ["tugas"],
+    message: "belum diupload",
+  },
+  {
+    path: "lampiran.ktp",
+    label: "Foto KTP",
+    level: "warning",
+    modules: ["lampiran"],
+    message: "belum ada",
+  },
+  {
+    path: "lampiran.stnk",
+    label: "Foto STNK",
+    level: "warning",
+    modules: ["lampiran"],
+    message: "belum ada",
+  },
 ];
 
 export function validateData(data: BastData): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
-  /* ---------- wajib ---------- */
-  for (const [path, label] of REQUIRED) {
-    if (!valueOf(data, path).trim()) {
-      issues.push({ path, label, message: "wajib diisi", level: "error" });
+  /* ---------- aturan field ---------- */
+  for (const rule of RULES) {
+    if (isEmpty(data, rule.path)) {
+      issues.push({
+        path: rule.path,
+        label: rule.label,
+        message: rule.message ?? WAJIB,
+        level: rule.level,
+        modules: rule.modules,
+      });
     }
   }
 
@@ -66,14 +193,16 @@ export function validateData(data: BastData): ValidationIssue[] {
       label: "Tanggal BAST",
       message: "tanggal tidak valid",
       level: "error",
+      modules: ["bast"],
     });
   }
   if (data.st.tanggalSuratISO && !hariTanggal(data.st.tanggalSuratISO)) {
     issues.push({
       path: "st.tanggalSuratISO",
-      label: "Tanggal Surat Tugas",
+      label: "Tanggal Surat",
       message: "tanggal tidak valid",
       level: "error",
+      modules: ["tugas"],
     });
   }
   if (data.tahun.trim() && !/^\d{4}$/.test(data.tahun.trim())) {
@@ -82,6 +211,7 @@ export function validateData(data: BastData): ValidationIssue[] {
       label: "Tahun kendaraan",
       message: "gunakan 4 angka",
       level: "error",
+      modules: ["umum", "bast"],
     });
   }
   if (data.st.petugasNik.trim() && !/^\d{16}$/.test(data.st.petugasNik.trim())) {
@@ -90,31 +220,19 @@ export function validateData(data: BastData): ValidationIssue[] {
       label: "NIK Petugas",
       message: "gunakan 16 angka",
       level: "error",
+      modules: ["tugas"],
     });
   }
 
-  /* ---------- anjuran ---------- */
-  for (const [path, label, message] of RECOMMENDED) {
-    if (path === "kop.image") {
-      if (!data.kop.image) issues.push({ path, label, message, level: "warning" });
-      continue;
-    }
-    if (path === "lampiran.ktp") {
-      if (!data.lampiran.ktp.length)
-        issues.push({ path, label, message, level: "warning" });
-      continue;
-    }
-    if (path === "lampiran.stnk") {
-      if (!data.lampiran.stnk.length)
-        issues.push({ path, label, message, level: "warning" });
-      continue;
-    }
-    if (!valueOf(data, path).trim()) {
-      issues.push({ path, label, message, level: "warning" });
-    }
-  }
-
   return issues;
+}
+
+/** Ambil hanya masalah yang berdampak ke modul-modul tertentu. */
+export function issuesForModules(
+  issues: ValidationIssue[],
+  mods: ModuleId[],
+): ValidationIssue[] {
+  return issues.filter((i) => i.modules.some((m) => mods.includes(m)));
 }
 
 /** Petakan path → pesan (dipakai untuk warna & teks di bawah input). */

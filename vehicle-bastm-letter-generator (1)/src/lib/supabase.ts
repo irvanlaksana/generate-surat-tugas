@@ -30,9 +30,7 @@ export interface PetugasPenagihan {
   created_at: string
 }
 
-export type PetugasInput = Omit<PetugasPenagihan, 'id' | 'created_at' | 'nik'> & {
-  nik?: string
-}
+export type PetugasInput = Omit<PetugasPenagihan, 'id' | 'created_at'>
 
 /* ------------------------------------------------------------------ */
 /* Inisialisasi Supabase (opsional)                                    */
@@ -141,49 +139,6 @@ function mergeByNik(a: PetugasPenagihan[], b: PetugasPenagihan[]): PetugasPenagi
 }
 
 /* ------------------------------------------------------------------ */
-/* Generator NIK                                                       */
-/* ------------------------------------------------------------------ */
-
-function hashString(s: string): number {
-  let h = 0x811c9dc5
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i)
-    h = Math.imul(h, 0x01000193)
-  }
-  return h >>> 0
-}
-
-/**
- * NIK 16 digit yang konsisten dari nama — dipakai sebagai pratinjau di UI
- * dan sebagai dasar NIK unik saat menyimpan.
- */
-export function generateNIK(nama: string): string {
-  const norm = (nama || '').trim().toUpperCase() || 'PETUGAS'
-  const h1 = hashString(norm)
-  const h2 = hashString(norm.split('').reverse().join(''))
-  return (h1.toString().padStart(8, '0') + h2.toString().padStart(8, '0')).slice(0, 16)
-}
-
-/** NIK baru bila dasarnya sudah dipakai (ganti 6 digit terakhir acak). */
-function saltNik(base: string): string {
-  const rnd = Math.floor(Math.random() * 1_000_000)
-    .toString()
-    .padStart(6, '0')
-  return (base.slice(0, 10) + rnd).slice(0, 16)
-}
-
-/** Pastikan NIK tidak bentrok dengan yang sudah ada. */
-function uniqueNik(base: string, used: Set<string>): string {
-  let nik = base
-  let attempts = 0
-  while (used.has(nik) && attempts < 200) {
-    nik = saltNik(base)
-    attempts++
-  }
-  return nik
-}
-
-/* ------------------------------------------------------------------ */
 /* Pesan error yang mudah dipahami                                     */
 /* ------------------------------------------------------------------ */
 
@@ -246,40 +201,42 @@ export async function addPetugas(petugas: PetugasInput): Promise<PetugasPenagiha
     mitra_id: petugas.mitra_id ?? null,
     aktif: petugas.aktif ?? true,
   }
-  let nik = (petugas.nik || generateNIK(nama)).replace(/\D/g, '').slice(0, 16) || generateNIK(nama)
+  const nik = petugas.nik || ''
+  if (!nik) throw new Error('NIK petugas wajib diisi.')
+  if (!/^[0-9]{16}$/.test(nik)) throw new Error('NIK harus terdiri dari 16 digit angka.')
 
   if (supabase && !degradedToLocal) {
-    for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        const { data, error } = await supabase
-          .from('petugas_penagihan')
-          .insert({ ...base, nik })
-          .select()
-          .single()
-        if (error) throw error
-        if (data) {
-          // catat juga ke cadangan lokal
-          writeLocalPetugas(mergeByNik(readLocalPetugas(), [data as PetugasPenagihan]))
-          return data as PetugasPenagihan
-        }
-        throw new Error('Data tidak tersimpan ke Supabase.')
-      } catch (e) {
-        if (/duplicate key/i.test(messageOf(e)) && attempt < 2) {
-          nik = saltNik(nik) // NIK bentrok → coba NIK baru
-          continue
-        }
-        console.warn('Supabase gagal menyimpan — beralih ke penyimpanan lokal:', e)
-        degradedToLocal = true
-        break
+    try {
+      const { data, error } = await supabase
+        .from('petugas_penagihan')
+        .insert({ ...base, nik })
+        .select()
+        .single()
+      if (error) throw error
+      if (data) {
+        // catat juga ke cadangan lokal
+        writeLocalPetugas(mergeByNik(readLocalPetugas(), [data as PetugasPenagihan]))
+        return data as PetugasPenagihan
       }
+      throw new Error('Data tidak tersimpan ke Supabase.')
+    } catch (e) {
+      // NIK manual tidak boleh diganti atau disimpan lokal untuk melewati duplikat.
+      if ((typeof e === 'object' && e !== null && 'code' in e && e.code === '23505') || /duplicate key/i.test(messageOf(e))) {
+        throw new Error('NIK sudah terdaftar. Gunakan NIK petugas yang berbeda.')
+      }
+      console.warn('Supabase gagal menyimpan — beralih ke penyimpanan lokal:', e)
+      degradedToLocal = true
     }
   }
 
   // ---- penyimpanan lokal ----
   const rows = readLocalPetugas()
+  if (rows.some((r) => r.nik === nik)) {
+    throw new Error('NIK sudah terdaftar. Gunakan NIK petugas yang berbeda.')
+  }
   const row: PetugasPenagihan = {
     ...base,
-    nik: uniqueNik(nik, new Set(rows.map((r) => r.nik))),
+    nik,
     id: nextLocalId(rows),
     created_at: new Date().toISOString(),
   }

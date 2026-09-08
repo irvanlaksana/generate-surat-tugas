@@ -30,12 +30,12 @@ tidak bereaksi sama sekali. Sekarang:
    RLS), operasi otomatis beralih ke `localStorage` supaya data tidak hilang.
 3. Semua kegagalan ditampilkan sebagai pesan error di dialog — tidak pernah
    gagal senyap.
-4. Bentrok NIK unik ditangani otomatis (regenerasi NIK baru, maks. 3 percobaan).
+4. NIK duplikat ditolak dengan pesan error, tanpa regenerasi atau fallback lokal.
 
 ## Fitur
 
 ### Petugas Penagihan
-- ✅ NIK 16 digit otomatis & unik (deterministik dari nama untuk pratinjau).
+- ✅ NIK 16 digit diisi manual dan divalidasi; duplikat ditolak.
 - ✅ Dropdown dengan pencarian nama/NIK.
 - ✅ Tambah petugas dari form Surat Tugas dengan umpan balik status/error.
 - ✅ Soft delete (`aktif = false`) pada `deletePetugas`.
@@ -45,7 +45,7 @@ tidak bereaksi sama sekali. Sekarang:
 
 | File | Peran |
 | --- | --- |
-| `src/lib/supabase.ts` | Lapisan data: deteksi konfigurasi, penyimpanan lokal, Supabase + fallback, generator NIK |
+| `src/lib/supabase.ts` | Lapisan data: deteksi konfigurasi, penyimpanan lokal, Supabase + fallback, validasi NIK |
 | `src/components/ui/PetugasDropdown.tsx` | UI dropdown + dialog tambah petugas (status simpan & pesan error) |
 | `scripts/init-supabase.sql` | Skema & kebijakan RLS Supabase |
 | `.env` (tidak di-commit) | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` |
@@ -57,7 +57,6 @@ fetchPetugasPenagihan(): Promise<PetugasPenagihan[]>   // daftar aktif, urut nam
 addPetugas(input): Promise<PetugasPenagihan>           // melempar Error bila gagal
 updatePetugas(id, patch): Promise<PetugasPenagihan>    // melempar Error bila gagal
 deletePetugas(id): Promise<void>                       // soft delete
-generateNIK(nama): string                              // pratinjau NIK deterministik
 getStorageMode(): 'supabase' | 'local'                 // indikator mode aktif
 isSupabaseConfigured: boolean
 ```

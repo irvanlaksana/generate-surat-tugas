@@ -1,25 +1,37 @@
+import type { ModuleId } from "../lib/modules";
+import { MODULE_BY_ID } from "../lib/modules";
 import type { ValidationIssue } from "../lib/validation";
-import { focusField } from "../lib/validation";
 import { Btn } from "./ui";
+
+/** Issue validasi + modul tempat field-nya bisa diperbaiki. */
+export interface GateIssue extends ValidationIssue {
+  owner?: ModuleId;
+}
 
 interface Props {
   open: boolean;
-  issues: ValidationIssue[];
+  issues: GateIssue[];
   fileName: string;
+  /** modul halaman ini — issue milik modul lain diberi tanda untuk lompat */
+  currentModule?: ModuleId;
   onClose: () => void;
   onPrint: () => void;
+  onGotoField: (path: string) => void;
 }
 
 /**
  * Gerbang sebelum cetak: cegah "Simpan PDF" bila data wajib belum lengkap,
  * dan tampilkan daftar peringatan supaya tidak ada field yang terlewat.
+ * Tombol "perbaiki" otomatis berpindah ke modul pemilik field.
  */
 export default function PrintGate({
   open,
   issues,
   fileName,
+  currentModule,
   onClose,
   onPrint,
+  onGotoField,
 }: Props) {
   if (!open) return null;
 
@@ -29,7 +41,16 @@ export default function PrintGate({
 
   const perbaiki = (path: string) => {
     onClose();
-    focusField(path);
+    onGotoField(path);
+  };
+
+  const ownerTag = (issue: GateIssue) => {
+    if (!issue.owner || issue.owner === currentModule) return null;
+    return (
+      <span className="shrink-0 rounded bg-white/80 px-1.5 py-[1px] text-[9px] font-semibold uppercase tracking-wide text-slate-500 ring-1 ring-slate-200">
+        di {MODULE_BY_ID[issue.owner].short}
+      </span>
+    );
   };
 
   return (
@@ -75,13 +96,14 @@ export default function PrintGate({
                     onClick={() => perbaiki(issue.path)}
                     className="flex w-full items-center gap-2 rounded-md bg-rose-50 px-2 py-1 text-left transition hover:bg-rose-100"
                   >
-                    <span className="text-[11px] font-semibold text-rose-700">
+                    <span className="shrink-0 text-[11px] font-semibold text-rose-700">
                       {issue.label}
                     </span>
-                    <span className="text-[10.5px] text-rose-500">
+                    <span className="shrink-0 text-[10.5px] text-rose-500">
                       {issue.message}
                     </span>
-                    <span className="ml-auto text-[10px] text-rose-400">
+                    {ownerTag(issue)}
+                    <span className="ml-auto shrink-0 text-[10px] text-rose-400">
                       perbaiki →
                     </span>
                   </button>
@@ -99,13 +121,14 @@ export default function PrintGate({
                     onClick={() => perbaiki(issue.path)}
                     className="flex w-full items-center gap-2 rounded-md bg-amber-50 px-2 py-1 text-left transition hover:bg-amber-100"
                   >
-                    <span className="text-[11px] font-semibold text-amber-700">
+                    <span className="shrink-0 text-[11px] font-semibold text-amber-700">
                       {issue.label}
                     </span>
-                    <span className="text-[10.5px] text-amber-600">
+                    <span className="shrink-0 text-[10.5px] text-amber-600">
                       {issue.message}
                     </span>
-                    <span className="ml-auto text-[10px] text-amber-400">
+                    {ownerTag(issue)}
+                    <span className="ml-auto shrink-0 text-[10px] text-amber-400">
                       isi →
                     </span>
                   </button>

@@ -42,22 +42,32 @@ export function slugify(value: string): string {
 
 /**
  * Nama file PDF hasil cetak:
- *   {inisial kreditur}-{nama debitur}-{kecamatan}
- * Contoh: KAMM-MARYANTO-WANGON
- * Bagian yang kosong diganti penanda agar format tetap 3 bagian.
+ *   [{awalan modul}-]{inisial kreditur}-{nama debitur}-{kecamatan}
+ * Contoh: ST-KAMM-MARYANTO-WANGON
+ * Bagian yang kosong diganti penanda agar format tetap konsisten.
  */
-export function pdfFileName(data: {
-  kreditur: string;
-  namaDebitur: string;
-  kecamatan: string;
-}): string {
+export function pdfFileName(
+  data: {
+    kreditur: string;
+    namaDebitur: string;
+    kecamatan: string;
+  },
+  prefix = "",
+): string {
   const kreditur =
     data.kreditur.trim() && initialsOf(data.kreditur)
       ? initialsOf(data.kreditur)
       : "KREDITUR";
   const debitur = slugify(data.namaDebitur) || "NAMA-DEBITUR";
   const kecamatan = slugify(data.kecamatan) || "KECAMATAN";
-  return [slugify(kreditur), debitur, kecamatan].join("-");
+  return [
+    prefix.trim() ? slugify(prefix) : "",
+    slugify(kreditur),
+    debitur,
+    kecamatan,
+  ]
+    .filter(Boolean)
+    .join("-");
 }
 
 const SEQ_KEY = "bast-st-seq-v1";

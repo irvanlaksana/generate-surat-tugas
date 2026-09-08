@@ -1,258 +1,100 @@
-# Supabase Setup Guide for Petugas Penagihan & Debitur Management
+# Panduan Setup Supabase — Petugas Penagihan
 
-This guide will help you set up Supabase database for the Petugas Penagihan and Debitur management system.
+Aplikasi **sudah berfungsi tanpa Supabase** (data petugas tersimpan di
+localStorage browser). Ikuti panduan ini hanya bila Anda ingin data petugas
+disimpan di cloud dan dipakai bersama antar perangkat.
 
-## Prerequisites
-- A Supabase account (free tier available)
-- Node.js and npm installed
+## Langkah 1 — Buat Project Supabase
 
-## Step 1: Create Supabase Project
+1. Buka [supabase.com](https://supabase.com) dan login.
+2. Klik **New Project**, pilih organisation, isi nama & password database.
+3. Tunggu provisioning selesai.
 
-1. Go to [https://supabase.com](https://supabase.com)
-2. Click "New Project"
-3. Fill in your project details and create the project
-4. Wait for the database to be provisioned
+## Langkah 2 — Buat Tabel
 
-## Step 2: Get Your Supabase Credentials
+1. Buka **SQL Editor** di dashboard Supabase.
+2. Salin seluruh isi [`scripts/init-supabase.sql`](./scripts/init-supabase.sql)
+   dan jalankan (Run).
+3. Skrip tersebut:
+   - membuat tabel `mitra` dan `petugas_penagihan`,
+   - menghapus tabel `debitur` bila ada dari versi lama (modul debitur sudah
+     dihapus dari aplikasi),
+   - mengaktifkan RLS beserta kebijakan baca/tambah/ubah untuk petugas —
+     **tanpa kebijakan ini, tombol Simpan akan ditolak Supabase**.
 
-1. In your Supabase project dashboard, go to **Settings > API**
-2. Copy the following:
-   - **Project URL** (this is your `VITE_SUPABASE_URL`)
-   - **anon public key** (this is your `VITE_SUPABASE_ANON_KEY`)
+## Langkah 3 — Ambil Kredensial
 
-## Step 3: Configure Environment Variables
+Buka **Project Settings → API** dan salin:
 
-Create a `.env` file in your project root (copy from `.env.example`):
+- **Project URL** → `VITE_SUPABASE_URL`
+- **anon public key** → `VITE_SUPABASE_ANON_KEY`
 
-```bash
-cp .env.example .env
+## Langkah 4 — Buat File `.env`
+
+Di folder `vehicle-bastm-letter-generator (1)`, buat file `.env`:
+
+```
+VITE_SUPABASE_URL=https://xxxxxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOi...
 ```
 
-Then edit `.env` with your credentials:
+> File `.env` diabaikan oleh Git (`.gitignore`) — jangan commit kredensial.
 
-```env
-VITE_SUPABASE_URL=https://your-project-ref.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
-```
-
-## Step 4: Create Database Tables
-
-You can create the tables using SQL Editor in Supabase dashboard or via the Supabase CLI.
-
-### Option A: Using Supabase SQL Editor
-
-1. Go to **SQL Editor** in your Supabase dashboard
-2. Run the following SQL:
-
-```sql
--- Create Mitra table (optional, for organizing petugas)
-CREATE TABLE IF NOT EXISTS mitra (
-  id SERIAL PRIMARY KEY,
-  nama VARCHAR(255) NOT NULL,
-  legalitas VARCHAR(100),
-  alamat TEXT,
-  pic VARCHAR(255),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Create Petugas Penagihan table
-CREATE TABLE IF NOT EXISTS petugas_penagihan (
-  id SERIAL PRIMARY KEY,
-  nama VARCHAR(255) NOT NULL,
-  nik VARCHAR(16) UNIQUE NOT NULL,
-  jabatan VARCHAR(100) DEFAULT 'Petugas Penagihan',
-  mitra_id INTEGER REFERENCES mitra(id) ON DELETE SET NULL,
-  aktif BOOLEAN DEFAULT TRUE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Create Debitur table
-CREATE TABLE IF NOT EXISTS debitur (
-  id SERIAL PRIMARY KEY,
-  nama VARCHAR(255) NOT NULL,
-  alamat TEXT,
-  no_kontrak VARCHAR(100) UNIQUE,
-  no_ktp VARCHAR(50),
-  telepon VARCHAR(20),
-  email VARCHAR(255),
-  status VARCHAR(20) DEFAULT 'aktif' CHECK (status IN ('aktif', 'lunas', 'macet')),
-  mitra_id INTEGER REFERENCES mitra(id) ON DELETE SET NULL,
-  petugas_id INTEGER REFERENCES petugas_penagihan(id) ON DELETE SET NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Create indexes for better performance
-CREATE INDEX IF NOT EXISTS idx_petugas_penagihan_aktif ON petugas_penagihan(aktif) WHERE aktif = TRUE;
-CREATE INDEX IF NOT EXISTS idx_petugas_penagihan_nama ON petugas_penagihan(nama);
-CREATE INDEX IF NOT EXISTS idx_debitur_nama ON debitur(nama);
-CREATE INDEX IF NOT EXISTS idx_debitur_no_kontrak ON debitur(no_kontrak);
-CREATE INDEX IF NOT EXISTS idx_debitur_status ON debitur(status);
-```
-
-### Option B: Using Supabase CLI
-
-Install Supabase CLI:
-```bash
-npm install -g supabase
-```
-
-Link your project:
-```bash
-supabase link --project-ref your-project-ref
-```
-
-Apply migrations:
-```bash
-supabase db push
-```
-
-## Step 5: Enable Row Level Security (RLS)
-
-For production, enable RLS on your tables:
-
-1. Go to **Authentication > Policies** in Supabase dashboard
-2. Create policies for each table based on your security requirements
-
-Example policies:
-
-```sql
--- Enable RLS
-ALTER TABLE petugas_penagihan ENABLE ROW LEVEL SECURITY;
-ALTER TABLE debitur ENABLE ROW LEVEL SECURITY;
-ALTER TABLE mitra ENABLE ROW LEVEL SECURITY;
-
--- Allow read access to all users (for public access)
-CREATE POLICY "Allow read access to petugas_penagihan" ON petugas_penagihan
-  FOR SELECT USING (true);
-
-CREATE POLICY "Allow read access to debitur" ON debitur
-  FOR SELECT USING (true);
-
--- Allow insert, update, delete for authenticated users
-CREATE POLICY "Allow insert petugas_penagihan" ON petugas_penagihan
-  FOR INSERT WITH CHECK (true);
-
-CREATE POLICY "Allow update petugas_penagihan" ON petugas_penagihan
-  FOR UPDATE USING (true);
-
-CREATE POLICY "Allow delete petugas_penagihan" ON petugas_penagihan
-  FOR DELETE USING (true);
-
-CREATE POLICY "Allow insert debitur" ON debitur
-  FOR INSERT WITH CHECK (true);
-
-CREATE POLICY "Allow update debitur" ON debitur
-  FOR UPDATE USING (true);
-
-CREATE POLICY "Allow delete debitur" ON debitur
-  FOR DELETE USING (true);
-```
-
-For production, you should create more restrictive policies based on user roles.
-
-## Step 6: Install Dependencies
+## Langkah 5 — Jalankan
 
 ```bash
 npm install
-```
-
-## Step 7: Run the Application
-
-```bash
 npm run dev
 ```
 
-## Step 8: Deploy to Vercel
+Buka modul **Surat Tugas** → **+ Tambah** petugas. Dialog akan menampilkan
+indikator “Tersimpan ke database Supabase” bila koneksi berhasil.
 
-1. Push your code to a Git repository (GitHub, GitLab, etc.)
-2. Go to [https://vercel.com](https://vercel.com)
-3. Import your repository
-4. Add environment variables in Vercel project settings:
+## Deploy ke Vercel
+
+1. Push repo ke GitHub lalu import di [vercel.com](https://vercel.com)
+   (konfigurasi build sudah tersedia di `vercel.json`).
+2. Pada **Project Settings → Environment Variables**, tambahkan:
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
-5. Deploy!
+3. Deploy.
 
-## Database Schema Reference
+## Skema Database
 
-### petugas_penagihan
-| Column | Type | Description |
-|--------|------|-------------|
-| id | SERIAL | Primary key |
-| nama | VARCHAR(255) | Nama petugas |
-| nik | VARCHAR(16) | NIK otomatis (unique) |
-| jabatan | VARCHAR(100) | Jabatan petugas |
-| mitra_id | INTEGER | Reference to mitra |
-| aktif | BOOLEAN | Status aktif/tidak |
-| created_at | TIMESTAMP | Waktu pembuatan |
+### `petugas_penagihan`
 
-### debitur
-| Column | Type | Description |
-|--------|------|-------------|
-| id | SERIAL | Primary key |
-| nama | VARCHAR(255) | Nama debitur |
-| alamat | TEXT | Alamat debitur |
-| no_kontrak | VARCHAR(100) | Nomor kontrak (unique) |
-| no_ktp | VARCHAR(50) | Nomor KTP |
-| telepon | VARCHAR(20) | Nomor telepon |
-| email | VARCHAR(255) | Email |
-| status | VARCHAR(20) | Status: aktif, lunas, macet |
-| mitra_id | INTEGER | Reference to mitra |
-| petugas_id | INTEGER | Reference to petugas_penagihan |
-| created_at | TIMESTAMP | Waktu pembuatan |
+| Kolom | Tipe | Keterangan |
+| --- | --- | --- |
+| id | SERIAL PK | ID otomatis |
+| nama | VARCHAR(255) NOT NULL | Nama petugas |
+| nik | VARCHAR(16) UNIQUE NOT NULL | NIK 16 digit (digenerate aplikasi) |
+| jabatan | VARCHAR(100) | Default `Petugas Penagihan` |
+| mitra_id | INTEGER FK → mitra(id) | Opsional |
+| aktif | BOOLEAN | Soft delete (`false` = tidak tampil) |
+| created_at | TIMESTAMPTZ | Waktu dibuat |
 
-### mitra
-| Column | Type | Description |
-|--------|------|-------------|
-| id | SERIAL | Primary key |
-| nama | VARCHAR(255) | Nama mitra |
+### `mitra`
+
+| Kolom | Tipe | Keterangan |
+| --- | --- | --- |
+| id | SERIAL PK | ID otomatis |
+| nama | VARCHAR(255) NOT NULL | Nama mitra |
 | legalitas | VARCHAR(100) | Nomor legalitas |
-| alamat | TEXT | Alamat mitra |
+| alamat | TEXT | Alamat |
 | pic | VARCHAR(255) | Penanggung jawab |
-| created_at | TIMESTAMP | Waktu pembuatan |
+| created_at | TIMESTAMPTZ | Waktu dibuat |
 
-## Features
+## Keamanan (RLS)
 
-### Petugas Penagihan
-- ✅ Automatic NIK generation for each petugas
-- ✅ Dropdown selection with search
-- ✅ Add new petugas via modal
-- ✅ View petugas details (NIK, jabatan)
-- ✅ Integration with Supabase
-
-### Debitur Management
-- ✅ Full CRUD operations (Create, Read, Update, Delete)
-- ✅ Search functionality
-- ✅ Form validation
-- ✅ Status management (aktif, lunas, macet)
-- ✅ Association with petugas penagihan
-- ✅ Integration with Supabase
-
-## Security Notes
-
-1. **For Production**: Always enable RLS and create proper policies
-2. **Environment Variables**: Never commit `.env` files to version control
-3. **Rate Limiting**: Consider adding rate limiting for public APIs
-4. **Authentication**: For sensitive operations, implement user authentication
+Kebijakan default mengizinkan anon key membaca/menambah/mengubah petugas —
+cukup untuk pemakaian internal. Untuk produksi yang lebih ketat, ganti
+kebijakan tersebut dengan `auth.uid() IS NOT NULL` dan gunakan Supabase Auth
+(lihat komentar di `scripts/init-supabase.sql`).
 
 ## Troubleshooting
 
-### Connection Issues
-- Verify your `.env` variables are correct
-- Check if the Supabase project is running
-- Ensure CORS settings in Supabase allow your domain
-
-### Database Issues
-- Check SQL syntax for errors
-- Verify table names and column types
-- Ensure foreign key references are valid
-
-### Deployment Issues
-- Make sure all environment variables are set in Vercel
-- Check build logs for errors
-- Ensure Supabase URL is accessible from Vercel
-
-## Support
-
-For issues with this setup, please refer to:
-- [Supabase Documentation](https://supabase.com/docs)
-- [Vercel Documentation](https://vercel.com/docs)
+| Gejala | Penyebab & Solusi |
+| --- | --- |
+| “Database menolak penyimpanan (RLS)” | Jalankan ulang `scripts/init-supabase.sql` — kebijakan RLS belum dibuat. |
+| “Tidak dapat terhubung ke database Supabase” | Cek `.env` / environment variables dan koneksi internet. Data otomatis disimpan lokal sebagai cadangan. |
+| Data petugas hilang setelah pindah browser | Mode lokal bersifat per-browser. Gunakan Supabase agar data terpusat. |

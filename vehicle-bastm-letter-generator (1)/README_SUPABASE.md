@@ -1,70 +1,51 @@
-# Supabase Database Integration for Generator Surat Tugas
+# Penyimpanan Data Petugas Penagihan — Generator Surat Tugas
 
-## New Features Added
+## Fitur
 
-This update adds comprehensive database integration for managing:
+Aplikasi mengelola data **Petugas Penagihan (team penagih)** yang dipakai pada
+Surat Tugas:
 
-1. **Petugas Penagihan (Collection Officers)**
-   - Automatic NIK generation for each petugas
-   - Dropdown selection with search
-   - Easy management via Supabase
+- Pemilihan petugas lewat dropdown dengan pencarian (nama / NIK).
+- Tombol **+ Tambah** untuk menambah petugas baru langsung dari form Surat Tugas.
+- **NIK 16 digit digenerate otomatis** dan dijamin unik (bentrok NIK ditangani otomatis).
+- Data tersimpan **permanen** dan tetap ada setelah halaman dimuat ulang.
 
-2. **Debitur (Debtors)**
-   - Full CRUD operations
-   - Search and filter functionality
-   - Status tracking (aktif, lunas, macet)
-   - Association with petugas
+## Mode Penyimpanan
 
-## Quick Setup
+| Mode | Kapan dipakai | Keterangan |
+| --- | --- | --- |
+| **Lokal** (default) | Supabase belum dikonfigurasi | Data disimpan di `localStorage` browser. Tidak perlu setup apa pun. |
+| **Supabase** | File `.env` terisi | Data disimpan di database Supabase sehingga bisa dipakai lintas perangkat. Bila koneksi gagal, aplikasi otomatis beralih ke penyimpanan lokal agar data tidak hilang. |
 
-### 1. Install Dependencies
-```bash
-npm install
-```
+Indikator mode aktif ditampilkan pada dialog tambah petugas.
 
-### 2. Set Up Supabase Database
-- Create a project at [supabase.com](https://supabase.com)
-- Run the SQL from `scripts/init-supabase.sql`
-- Copy your project URL and anon key
+## Menambah Petugas
 
-### 3. Configure Environment
-```bash
-cp .env.example .env
-# Edit .env with your Supabase credentials
-```
+1. Buka modul **Surat Tugas** → bagian **Petugas**.
+2. Klik **+ Tambah**, isi nama (wajib) dan jabatan (opsional).
+3. Klik **Simpan** — NIK muncul otomatis dan petugas langsung terpilih.
 
-### 4. Run the App
-```bash
-npm run dev
-```
+Bila penyimpanan gagal, pesan error yang jelas ditampilkan di dialog — tidak
+pernah gagal secara diam-diam.
 
-### 5. Deploy to Vercel
-- Push to Git
-- Import to Vercel
-- Add environment variables
-- Deploy!
+## Setup Supabase (Opsional)
 
-## Documentation
+1. Buat project di [supabase.com](https://supabase.com).
+2. Jalankan `scripts/init-supabase.sql` di SQL Editor.
+3. Buat file `.env` di folder project:
 
-- 📖 [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) - Detailed setup guide
-- 📖 [DATABASE_INTEGRATION.md](./DATABASE_INTEGRATION.md) - Integration details
-- 📖 [IMPLEMENTATION_SUMMARY.md](../IMPLEMENTATION_SUMMARY.md) - Complete summary
+   ```
+   VITE_SUPABASE_URL=https://xxxx.supabase.co
+   VITE_SUPABASE_ANON_KEY=eyJ...
+   ```
 
-## Usage
+4. Jalankan `npm run dev` (atau deploy ulang ke Vercel dengan environment
+   variables yang sama).
 
-### Petugas Dropdown
-In Surat Tugas form, use the dropdown to select a petugas. The NIK will automatically appear.
+Panduan lengkap: [SUPABASE_SETUP.md](./SUPABASE_SETUP.md).
 
-### Debitur Management
-Go to "Manajemen Debitur" module to:
-- Add, edit, delete debitur
-- Search debitur
-- Assign petugas to debitur
-- Auto-populate form data
+## Catatan
 
-## Support
-
-For help with setup or issues:
-1. Check the documentation files above
-2. Refer to Supabase docs: [supabase.com/docs](https://supabase.com/docs)
-3. Check Vercel docs: [vercel.com/docs](https://vercel.com/docs)
+- Modul debitur telah **dihapus** dari aplikasi. Data debitur untuk surat
+  diisi langsung pada modul **Data Umum** sebagaimana biasa.
+- Detail teknis lapisan data: [DATABASE_INTEGRATION.md](./DATABASE_INTEGRATION.md).

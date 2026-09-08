@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import type { PetugasPenagihan } from '../../lib/supabase'
-import { fetchPetugasPenagihan, addPetugas, generateNIK } from '../../lib/supabase'
+import {
+  fetchPetugasPenagihan,
+  addPetugas,
+  generateNIK,
+  getStorageMode,
+} from '../../lib/supabase'
 
 interface PetugasDropdownProps {
   value: string
@@ -30,7 +35,7 @@ function Btn({
     <button
       {...rest}
       disabled={disabled}
-      className={`inline-flex items-center justify-center gap-1 rounded-md px-2.5 py-1.5 text-[12px] font-medium transition active:scale-[0.97] ${styles[variant]} ${className}`}
+      className={`inline-flex items-center justify-center gap-1 rounded-md px-2.5 py-1.5 text-[12px] font-medium transition active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 ${styles[variant]} ${className}`}
     >
       {children}
     </button>
@@ -39,7 +44,8 @@ function Btn({
 
 /**
  * Dropdown component for selecting Petugas Penagihan with automatic NIK assignment.
- * Each petugas has their own unique NIK.
+ * Each petugas has their own unique NIK. Data tersimpan permanen di browser
+ * (localStorage) atau ke Supabase bila dikonfigurasi.
  */
 export function PetugasDropdown({ value, onChange, disabled, className }: PetugasDropdownProps) {
   const [petugasList, setPetugasList] = useState<PetugasPenagihan[]>([])
@@ -47,16 +53,21 @@ export function PetugasDropdown({ value, onChange, disabled, className }: Petuga
   const [isOpen, setIsOpen] = useState(false)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [newPetugas, setNewPetugas] = useState({ nama: '', jabatan: '' })
+  const [isSaving, setIsSaving] = useState(false)
+  const [errorMsg, setErrorMsg] = useState('')
+  const [loadError, setLoadError] = useState('')
   const ref = useRef<HTMLDivElement>(null)
 
-  // Fetch petugas data from Supabase
+  // Fetch petugas data
   const loadPetugas = useCallback(async () => {
     setIsLoading(true)
     try {
       const data = await fetchPetugasPenagihan()
       setPetugasList(data)
+      setLoadError('')
     } catch (error) {
       console.error('Failed to load petugas:', error)
+      setLoadError('Gagal memuat daftar petugas.')
     } finally {
       setIsLoading(false)
     }
@@ -86,44 +97,51 @@ export function PetugasDropdown({ value, onChange, disabled, className }: Petuga
 
   // Add new petugas
   const handleAddPetugas = async () => {
-    if (!newPetugas.nama.trim()) return
+    if (!newPetugas.nama.trim() || isSaving) return
 
+    setIsSaving(true)
+    setErrorMsg('')
     try {
-      const nik = generateNIK(newPetugas.nama)
-      const newData = {
-        nama: newPetugas.nama.toUpperCase(),
-        nik,
+      const result = await addPetugas({
+        nama: newPetugas.nama,
         jabatan: newPetugas.jabatan || 'Petugas Penagihan',
         mitra_id: null,
         aktif: true,
-      }
-
-      const result = await addPetugas(newData)
-      if (result) {
-        // Update local state
-        setPetugasList(prev => [...prev, result].sort((a, b) => a.nama.localeCompare(b.nama)))
-        // Select the new petugas
-        onChange(result.nama, result.nik)
-        setNewPetugas({ nama: '', jabatan: '' })
-        setIsDialogOpen(false)
-      }
+      })
+      // Update local state & pilih petugas baru
+      setPetugasList((prev) =>
+        [...prev, result].sort((a, b) => a.nama.localeCompare(b.nama)),
+      )
+      onChange(result.nama, result.nik)
+      setNewPetugas({ nama: '', jabatan: '' })
+      setErrorMsg('')
+      setIsDialogOpen(false)
     } catch (error) {
-      console.error('Failed to add petugas:', error)
+      setErrorMsg(
+        error instanceof Error
+          ? error.message
+          : 'Gagal menyimpan petugas. Silakan coba lagi.',
+      )
+    } finally {
+      setIsSaving(false)
     }
   }
 
   // Find NIK for current value
   const getNIKForNama = (nama: string): string | undefined => {
-    const petugas = petugasList.find(p => p.nama === nama)
+    const petugas = petugasList.find((p) => p.nama === nama)
     return petugas?.nik
   }
 
   // Filter petugas based on search
   const [searchQuery, setSearchQuery] = useState('')
-  const filteredPetugas = petugasList.filter(petugas => 
-    petugas.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    petugas.nik.includes(searchQuery)
+  const filteredPetugas = petugasList.filter(
+    (petugas) =>
+      petugas.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      petugas.nik.includes(searchQuery),
   )
+
+  const storageMode = getStorageMode()
 
   return (
     <div className={`relative ${className || ''}`} ref={ref}>
@@ -140,15 +158,20 @@ export function PetugasDropdown({ value, onChange, disabled, className }: Petuga
           }`}
         >
           <span className="truncate">
-            {isLoading ? 'Memuat...' : value || 'Pilih Petugas Penagihan'}
+            {isLoading
+              ? 'Memuat...'
+              : value || 'Pilih Petugas Penagihan'}
           </span>
           <span className="text-slate-400 ml-1">▼</span>
         </button>
-        
+
         <Btn
           type="button"
           variant="ghost"
-          onClick={() => setIsDialogOpen(true)}
+          onClick={() => {
+            setErrorMsg('')
+            setIsDialogOpen(true)
+          }}
           disabled={disabled}
           className="shrink-0 text-[10px] px-1.5 py-[1px]"
         >
@@ -177,12 +200,23 @@ export function PetugasDropdown({ value, onChange, disabled, className }: Petuga
               autoFocus
             />
           </div>
-          
+
           {/* Petugas List */}
           <div className="max-h-60 overflow-y-auto py-1">
-            {filteredPetugas.length === 0 ? (
+            {loadError ? (
+              <div className="px-3 py-2">
+                <p className="text-[11px] text-rose-600">{loadError}</p>
+                <button
+                  type="button"
+                  onClick={loadPetugas}
+                  className="mt-1 text-[11px] font-medium text-indigo-600 hover:underline"
+                >
+                  Muat ulang
+                </button>
+              </div>
+            ) : filteredPetugas.length === 0 ? (
               <div className="px-3 py-2 text-[11px] text-slate-400">
-                Tidak ada petugas
+                Tidak ada petugas — klik “+ Tambah” untuk menambahkan.
               </div>
             ) : (
               filteredPetugas.map((petugas) => (
@@ -210,14 +244,12 @@ export function PetugasDropdown({ value, onChange, disabled, className }: Petuga
       {/* Add Petugas Dialog */}
       {isDialogOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-          <div
-            className="w-full max-w-sm rounded-lg bg-white shadow-xl"
-          >
+          <div className="w-full max-w-sm rounded-lg bg-white shadow-xl">
             <div className="px-4 py-3 border-b border-slate-200">
               <h3 className="text-lg font-semibold text-slate-900">Tambah Petugas Penagihan</h3>
               <p className="text-sm text-slate-500">NIK akan digenerate otomatis</p>
             </div>
-            
+
             <div className="p-4 space-y-3">
               <div>
                 <label className="block text-[10px] font-medium text-slate-500 uppercase tracking-wide mb-1">
@@ -226,12 +258,16 @@ export function PetugasDropdown({ value, onChange, disabled, className }: Petuga
                 <input
                   type="text"
                   value={newPetugas.nama}
-                  onChange={(e) => setNewPetugas(prev => ({ ...prev, nama: e.target.value }))}
+                  onChange={(e) => setNewPetugas((prev) => ({ ...prev, nama: e.target.value }))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleAddPetugas()
+                  }}
                   placeholder="Nama petugas"
+                  disabled={isSaving}
                   className="w-full rounded-md border border-slate-200 px-2 py-1.5 text-[12px] focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-100"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-[10px] font-medium text-slate-500 uppercase tracking-wide mb-1">
                   Jabatan
@@ -239,28 +275,52 @@ export function PetugasDropdown({ value, onChange, disabled, className }: Petuga
                 <input
                   type="text"
                   value={newPetugas.jabatan}
-                  onChange={(e) => setNewPetugas(prev => ({ ...prev, jabatan: e.target.value }))}
+                  onChange={(e) => setNewPetugas((prev) => ({ ...prev, jabatan: e.target.value }))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleAddPetugas()
+                  }}
                   placeholder="Petugas Penagihan"
+                  disabled={isSaving}
                   className="w-full rounded-md border border-slate-200 px-2 py-1.5 text-[12px] focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-100"
                 />
               </div>
 
               <div className="text-xs text-slate-400">
-                NIK yang akan digenerate: <span className="font-mono font-medium">{generateNIK(newPetugas.nama || 'NEW')}</span>
+                NIK yang akan digenerate:{' '}
+                <span className="font-mono font-medium">
+                  {generateNIK(newPetugas.nama || 'NEW')}
+                </span>
+              </div>
+
+              {errorMsg && (
+                <div className="rounded-md bg-rose-50 px-3 py-2 text-[11px] leading-snug text-rose-700 ring-1 ring-rose-200">
+                  {errorMsg}
+                </div>
+              )}
+
+              <div className="text-[10px] text-slate-400">
+                {storageMode === 'supabase'
+                  ? '💾 Tersimpan ke database Supabase'
+                  : '💾 Tersimpan permanen di browser ini (penyimpanan lokal)'}
               </div>
             </div>
 
             <div className="flex justify-end gap-2 p-3 border-t border-slate-200">
-              <Btn variant="ghost" onClick={() => setIsDialogOpen(false)} className="text-[11px]">
+              <Btn
+                variant="ghost"
+                onClick={() => setIsDialogOpen(false)}
+                disabled={isSaving}
+                className="text-[11px]"
+              >
                 Batal
               </Btn>
               <Btn
                 variant="primary"
                 onClick={handleAddPetugas}
-                disabled={!newPetugas.nama.trim()}
+                disabled={!newPetugas.nama.trim() || isSaving}
                 className="text-[11px]"
               >
-                Simpan
+                {isSaving ? 'Menyimpan…' : 'Simpan'}
               </Btn>
             </div>
           </div>

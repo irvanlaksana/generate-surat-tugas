@@ -12,7 +12,6 @@ import SuratTugasModule from "./modules/SuratTugasModule";
 import PenyerahanModule from "./modules/PenyerahanModule";
 import BastModule from "./modules/BastModule";
 import LampiranModule from "./modules/LampiranModule";
-import DebiturModule from "./modules/DebiturModule";
 
 const STORAGE_KEY = "bast-generator-v1";
 const ROUTE_KEY = "bast-generator-route";
@@ -221,7 +220,6 @@ export default function App() {
         {route === "penyerahan" && <PenyerahanModule {...pageProps} />}
         {route === "bast" && <BastModule {...pageProps} />}
         {route === "lampiran" && <LampiranModule {...pageProps} />}
-        {route === "debitur" && <DebiturModule {...pageProps} onRoute={gotoModule} />}
       </div>
     </div>
   );

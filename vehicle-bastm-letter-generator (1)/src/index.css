@@ -9,6 +9,88 @@ body {
   background: #eef1f6;
 }
 
+/* ====== DESKTOP AUTO-HIDE MENU ==========================================
+   Menu tetap menyisakan rail ikon agar selalu mudah ditemukan. Saat pointer
+   diarahkan ke rail atau salah satu kontrol mendapat fokus, label terbuka.
+   Focus-within membuat pola ini tetap bisa dipakai tanpa mouse. */
+.sidebar-auto-hide {
+  width: 3.5rem;
+  overflow-x: hidden;
+  transition: width 220ms ease;
+}
+
+.sidebar-auto-hide:hover,
+.sidebar-auto-hide:focus-within {
+  width: 13.75rem;
+}
+
+.sidebar-auto-hide .sidebar-header {
+  padding-inline: 0.625rem;
+}
+
+.sidebar-auto-hide .sidebar-brand-copy {
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-width 180ms ease, opacity 150ms ease;
+}
+
+.sidebar-auto-hide:hover .sidebar-brand-copy,
+.sidebar-auto-hide:focus-within .sidebar-brand-copy {
+  max-width: 10rem;
+  opacity: 1;
+}
+
+.sidebar-auto-hide .sidebar-label {
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 0;
+  transition: max-width 180ms ease, opacity 150ms ease;
+}
+
+.sidebar-auto-hide:hover .sidebar-label,
+.sidebar-auto-hide:focus-within .sidebar-label {
+  max-width: 11rem;
+  opacity: 1;
+}
+
+.sidebar-auto-hide .sidebar-section-label,
+.sidebar-auto-hide .sidebar-footer-note {
+  max-height: 0;
+  margin-block: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 180ms ease, opacity 150ms ease;
+}
+
+.sidebar-auto-hide:hover .sidebar-section-label,
+.sidebar-auto-hide:focus-within .sidebar-section-label,
+.sidebar-auto-hide:hover .sidebar-footer-note,
+.sidebar-auto-hide:focus-within .sidebar-footer-note {
+  max-height: 2rem;
+  opacity: 1;
+}
+
+.sidebar-auto-hide .sidebar-footer {
+  padding-inline: 0.375rem;
+}
+
+.sidebar-auto-hide:hover .sidebar-footer,
+.sidebar-auto-hide:focus-within .sidebar-footer {
+  padding-inline: 0.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-auto-hide,
+  .sidebar-auto-hide .sidebar-label,
+  .sidebar-auto-hide .sidebar-brand-copy,
+  .sidebar-auto-hide .sidebar-section-label,
+  .sidebar-auto-hide .sidebar-footer-note {
+    transition: none;
+  }
+}
+
 /* ====== DOCUMENT (F4 / FOLIO SHEET — 215 x 330 mm) ====== */
 :root {
   --paper-w: 215mm;

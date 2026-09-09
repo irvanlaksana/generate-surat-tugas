@@ -1,4 +1,66 @@
-# Implementation Summary: Perbaikan Database Petugas Penagihan
+# Implementation Summary
+
+## Terbaru: Semua Isian Surat Digabung Jadi Satu Form
+
+### Masalah
+Isian surat terpecah per dokumen (Data Umum, Surat Tugas, Surat Penyerahan,
+BAST, Lampiran) dan banyak field diisi dua kali untuk data yang sama.
+
+### Solusi
+Satu form isian (`src/components/forms/IsianForm.tsx`) memuat seluruh isian
+semua dokumen, dikelompokkan per topik (Debitur, Perjanjian & Tagihan,
+Kendaraan, Petugas, Nomor/Tanggal, Kreditur & Mitra, Perusahaan & Kop,
+Checklist, Opsi & TTD, Lampiran). Dokumen tinggal dipilih lewat tab di panel
+pratinjau untuk dicetak sendiri-sendiri atau sekaligus.
+
+### Nominal rupiah (Angsuran, Total Angsuran, Denda)
+- Isian `Angsuran / Total` dipecah jadi dua baris: **Angsuran** (`st.angsuran`)
+  dan **Total Angsuran** (`st.totalAngsuran`); `st.angsuranNilai` dihapus.
+- Angsuran, Total Angsuran, dan Denda memakai komponen `RupiahInput`
+  (`src/components/ui.tsx`): yang disimpan **angka saja**, tampilan otomatis
+  berpemisah ribuan (`652000` → `652.000`) dengan prefiks `Rp`.
+- Surat Tugas mencetak `Rp. 652.000 / Rp. 11.736.000` dan `Rp. 169.285.000`
+  lewat helper `rupiah()` / `ribuan()` / `digitsOnly()` di `src/lib/format.ts`.
+- Data lama dimigrasikan: `"Rp. 652.000 / Rp. 11.736.000"` dipecah ke dua
+  field, dan `denda` lama dibersihkan jadi angka.
+
+Isian ganda yang digabung:
+
+| Isian lama (duplikat) | Sekarang |
+| --- | --- |
+| `st.nasabahNama` (Surat Tugas) + `namaDebitur` | `namaDebitur` |
+| `st.merkType` + `merekType` | `merekType` |
+| `st.noPolisi` + `noPolisi` | `noPolisi` |
+| `st.noKontrak` + `noPerjanjian` | `noPerjanjian` |
+| `st.perusahaan` + `mitraNama` | `mitraNama` |
+| `noSuratTugas` (kaki BAST) + `st.nomor` | `st.nomor` |
+| `tanggalBast` + `st.tanggalSuratISO` | `tanggalISO` |
+| `st.nasabahAlamat` | `alamatDebitur` |
+| `st.angsuranNilai` (1 isian) | `st.angsuran` + `st.totalAngsuran` |
+
+Data lama di `localStorage` / Google Drive otomatis dimigrasikan
+(`migrate()` di `src/App.tsx`): bila isian bersama kosong, nilai dari field
+lama dipakai.
+
+### Struktur baru
+- Halaman: **Beranda** dan **Isian Surat** (form kiri + pratinjau & cetak kanan).
+- Dihapus: `ModuleLayout.tsx`, modul `DataUmum/SuratTugas/Penyerahan/Bast/Lampiran`,
+  form `DataUmumForm/SuratTugasForm/PenyerahanForm/BastForm/LampiranForm`.
+- Baru: `modules/IsianModule.tsx`, `components/IsianLayout.tsx`,
+  `components/forms/IsianForm.tsx`, `components/LampiranUploads.tsx`.
+- `lib/modules.ts` kini berisi daftar dokumen (`DOCS`) + bagian form (`SECTIONS`);
+  validasi menandai dokumen yang terdampak (`docs`), bukan modul.
+
+### Verifikasi
+- `npm run typecheck` bersih, `npm run build` sukses, `npm test` 16/16 lolos
+  (termasuk regresi baru `tests/single-form.test.mjs`: tidak ada field yang
+  diisi dua kali & isian lama sudah hilang) plus `tests/rupiah.test.mjs`
+  (format rupiah & hasil cetaknya di Surat Tugas).
+- `gas/verify-polyfill.mjs` lolos; `gas/Index.html` di-build ulang.
+
+---
+
+# Perbaikan Database Petugas Penagihan
 
 ## Ringkasan
 
@@ -40,8 +102,8 @@ terkonfigurasi), sehingga modul dihapus seluruhnya:
 - `scripts/init-supabase.sql` — tabel `debitur` di-drop & definisinya dihapus
 - Dokumentasi diperbarui
 
-Data debitur untuk surat tetap diisi di modul **Data Umum** seperti biasa
-(field `namaDebitur`, `alamat`, `noPerjanjian`, dll. tidak berubah).
+Data debitur untuk surat diisi di halaman **Isian Surat** seperti biasa
+(field `namaDebitur`, `alamatDebitur`, `noPerjanjian`, dll.).
 
 ## File yang Diubah
 

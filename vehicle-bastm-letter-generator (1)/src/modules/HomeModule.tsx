@@ -1,14 +1,12 @@
 import { useMemo, useState } from "react";
 import type { BastData } from "../types";
 import type { ValidationIssue } from "../lib/validation";
-import { countByLevel, issuesForModules } from "../lib/validation";
-import { MODULES } from "../lib/modules";
-import type { ModuleMeta, RouteId } from "../lib/modules";
-import { fieldOwner } from "../lib/modules";
+import { countByLevel, issuesForDocs } from "../lib/validation";
+import { DOCS } from "../lib/modules";
+import type { DocMeta, PreviewTab } from "../lib/modules";
 import { pdfFileName } from "../lib/text";
 import { printWithFileName } from "../lib/print";
 import PrintGate from "../components/PrintGate";
-import type { GateIssue } from "../components/PrintGate";
 import { PageCard } from "../components/PreviewStage";
 import { SuratTugasHal1, SuratTugasHal2 } from "../components/SuratTugas";
 import SuratPenyerahan from "../components/SuratPenyerahan";
@@ -18,17 +16,16 @@ import LampiranSheet from "../components/LampiranSheet";
 interface Props {
   data: BastData;
   issues: ValidationIssue[];
-  onRoute: (r: RouteId) => void;
+  /** buka halaman isian (opsional langsung ke tab dokumen tertentu) */
+  onOpen: (tab?: PreviewTab) => void;
   onGotoField: (path: string) => void;
   onContoh: () => void;
   onReset: () => void;
 }
 
-/** Info ringkas tiap modul untuk kartu Beranda. */
-function metaInfo(m: ModuleMeta, data: BastData): string {
+/** Info ringkas tiap dokumen untuk kartu Beranda. */
+function metaInfo(m: DocMeta, data: BastData): string {
   switch (m.id) {
-    case "umum":
-      return `${data.namaDebitur || "debitur —"} · ${data.kecamatan || "kecamatan —"}`;
     case "tugas":
       return `No. ${data.st.nomor || "—"}`;
     case "penyerahan":
@@ -43,11 +40,9 @@ function metaInfo(m: ModuleMeta, data: BastData): string {
 function StatusPill({
   error,
   warning,
-  readyLabel,
 }: {
   error: number;
   warning: number;
-  readyLabel: string;
 }) {
   const cls = error
     ? "bg-rose-50 text-rose-700 ring-rose-200"
@@ -58,7 +53,7 @@ function StatusPill({
     ? `${error} wajib diisi`
     : warning
       ? `${warning} perlu diperiksa`
-      : readyLabel;
+      : "Siap dicetak";
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full px-2 py-[2px] text-[10px] font-semibold ring-1 ${cls}`}
@@ -68,11 +63,11 @@ function StatusPill({
   );
 }
 
-/** Beranda — dasbor menu modul-modul dokumen. */
+/** Beranda — ringkasan data & pintasan ke form isian tunggal. */
 export default function HomeModule({
   data,
   issues,
-  onRoute,
+  onOpen,
   onGotoField,
   onContoh,
   onReset,
@@ -81,10 +76,6 @@ export default function HomeModule({
 
   const total = useMemo(() => countByLevel(issues), [issues]);
   const fileName = useMemo(() => pdfFileName(data), [data]);
-  const gateIssues = useMemo<GateIssue[]>(
-    () => issues.map((i) => ({ ...i, owner: fieldOwner(i.path) })),
-    [issues],
-  );
 
   const fotoCount = data.lampiran.ktp.length + data.lampiran.stnk.length;
   const pageCount = 2 + 1 + 1 + (fotoCount > 0 ? 1 : 0);
@@ -113,21 +104,29 @@ export default function HomeModule({
               Generator Surat
             </h2>
             <p className="mt-1.5 max-w-xl text-[12.5px] leading-relaxed text-slate-300">
-              Susun <b className="text-slate-100">Surat Tugas</b>,{" "}
+              Isi <b className="text-slate-100">satu form</b> untuk{" "}
+              <b className="text-slate-100">Surat Tugas</b>,{" "}
               <b className="text-slate-100">Surat Penyerahan</b>,{" "}
               <b className="text-slate-100">BAST Kendaraan</b>, dan{" "}
-              <b className="text-slate-100">Lampiran</b> sebagai modul terpisah —
-              satu data bersama, tiap dokumen dicetak sendiri.
+              <b className="text-slate-100">Lampiran</b> — data yang sama hanya
+              diisi sekali, tidak ada isian ganda.
             </p>
 
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                onClick={printAll}
+                onClick={() => onOpen()}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3.5 py-2 text-[12px] font-semibold text-slate-900 shadow-sm transition hover:bg-slate-100 active:scale-[0.97]"
               >
+                🗂️ Isi Data Surat
+              </button>
+              <button
+                type="button"
+                onClick={printAll}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-3.5 py-2 text-[12px] font-semibold text-white ring-1 ring-inset ring-white/25 transition hover:bg-white/20 active:scale-[0.97]"
+              >
                 🖨️ Cetak Semua Dokumen
-                <span className="rounded bg-slate-900/10 px-1.5 py-[1px] text-[10px] font-bold">
+                <span className="rounded bg-slate-900/30 px-1.5 py-[1px] text-[10px] font-bold">
                   {pageCount} hal.
                 </span>
               </button>
@@ -147,7 +146,15 @@ export default function HomeModule({
               </button>
             </div>
 
-            <div className="mt-4">
+            <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] text-slate-300">
+              <span className="rounded-md bg-white/10 px-2 py-1 ring-1 ring-inset ring-white/15">
+                Debitur: <b className="text-white">{data.namaDebitur || "—"}</b>
+                {data.kecamatan.trim() ? ` · Kec. ${data.kecamatan.trim()}` : ""}
+              </span>
+              <span className="rounded-md bg-white/10 px-2 py-1 ring-1 ring-inset ring-white/15">
+                Unit: <b className="text-white">{data.merekType || "—"}</b>{" "}
+                {data.noPolisi || ""}
+              </span>
               {total.error > 0 ? (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/15 px-3 py-1 text-[11px] font-semibold text-rose-300 ring-1 ring-rose-400/30">
                   ● {total.error} data wajib belum diisi
@@ -164,19 +171,19 @@ export default function HomeModule({
             </div>
           </div>
 
-          {/* ================= KARTU MODUL ================= */}
+          {/* ================= KARTU DOKUMEN ================= */}
           <p className="mb-2 mt-6 px-1 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
-            Pilih Modul Dokumen
+            Dokumen — buka pratinjau &amp; cetak
           </p>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {MODULES.map((m) => {
-              const mi = issuesForModules(issues, [m.id]);
-              const { error, warning } = countByLevel(mi);
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {DOCS.map((m) => {
+              const di = issuesForDocs(issues, [m.id]);
+              const { error, warning } = countByLevel(di);
               return (
                 <button
                   key={m.id}
                   type="button"
-                  onClick={() => onRoute(m.id)}
+                  onClick={() => onOpen(m.id)}
                   className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-md"
                 >
                   <div className="flex items-start gap-3">
@@ -198,11 +205,7 @@ export default function HomeModule({
                     </span>
                   </div>
                   <div className="mt-3 flex items-center gap-2">
-                    <StatusPill
-                      error={error}
-                      warning={warning}
-                      readyLabel={m.id === "umum" ? "Data lengkap" : "Siap dicetak"}
-                    />
+                    <StatusPill error={error} warning={warning} />
                     <span className="ml-auto min-w-0 truncate text-[10px] text-slate-400">
                       {metaInfo(m, data)}
                     </span>
@@ -218,21 +221,22 @@ export default function HomeModule({
               <h3 className="text-[12px] font-bold text-slate-900">Cara Pakai</h3>
               <ol className="mt-2 space-y-1.5 text-[11px] leading-relaxed text-slate-600">
                 <li>
-                  <b>1.</b> Isi modul <b>Data Umum</b> — debitur, kendaraan,
-                  kreditur, mitra, & kop surat.
+                  <b>1.</b> Buka <b>Isian Surat</b> dan lengkapi satu form —
+                  debitur, perjanjian, kendaraan, petugas, nomor &amp; tanggal,
+                  kreditur/mitra, kop, checklist, dan lampiran foto.
                 </li>
                 <li>
-                  <b>2.</b> Buka modul dokumen yang dibutuhkan (Surat Tugas /
-                  Penyerahan / BAST / Lampiran) dan lengkapi detailnya.
+                  <b>2.</b> Pratinjau di panel kanan mengikuti isian secara
+                  langsung. Pilih tab dokumen bila hanya ingin melihat/mencetak
+                  satu dokumen.
                 </li>
                 <li>
-                  <b>3.</b> Periksa pratinjau, lalu <b>Cetak / Simpan PDF</b> —
-                  hanya dokumen modul itu yang dicetak. Nama file otomatis{" "}
+                  <b>3.</b> Klik <b>Cetak / Simpan PDF</b>. Nama file otomatis{" "}
                   <b>AWALAN-inisialkreditur-namadebitur-kecamatan</b>.
                 </li>
                 <li>
                   <b>4.</b> Gunakan <b>Cetak Semua Dokumen</b> untuk mencetak
-                  sekaligus dari Beranda.
+                  seluruh dokumen sekaligus.
                 </li>
               </ol>
             </div>
@@ -290,7 +294,7 @@ export default function HomeModule({
 
       <PrintGate
         open={gateOpen}
-        issues={gateIssues}
+        issues={issues}
         fileName={`${fileName}.pdf`}
         onClose={() => setGateOpen(false)}
         onPrint={() => {

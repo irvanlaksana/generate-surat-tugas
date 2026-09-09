@@ -77,3 +77,21 @@ export function todayISO(): string {
     "0",
   )}-${String(d.getDate()).padStart(2, "0")}`;
 }
+
+/* ======================= nominal rupiah ======================= */
+
+/** Ambil angka saja dari teks apa pun: "Rp. 652.000" → "652000". */
+export function digitsOnly(value: string): string {
+  return (value ?? "").replace(/\D/g, "");
+}
+
+/** Pemisah ribuan gaya Indonesia: "652000" → "652.000". */
+export function ribuan(value: string): string {
+  return digitsOnly(value).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
+/** Nominal siap cetak di surat: "652000" → "Rp. 652.000" (kosong → ""). */
+export function rupiah(value: string): string {
+  const digits = digitsOnly(value);
+  return digits ? `Rp. ${ribuan(digits)}` : "";
+}

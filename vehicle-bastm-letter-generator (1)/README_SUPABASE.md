@@ -47,5 +47,5 @@ Panduan lengkap: [SUPABASE_SETUP.md](./SUPABASE_SETUP.md).
 ## Catatan
 
 - Modul debitur telah **dihapus** dari aplikasi. Data debitur untuk surat
-  diisi langsung pada modul **Data Umum** sebagaimana biasa.
+  diisi langsung pada halaman **Isian Surat** sebagaimana biasa.
 - Detail teknis lapisan data: [DATABASE_INTEGRATION.md](./DATABASE_INTEGRATION.md).

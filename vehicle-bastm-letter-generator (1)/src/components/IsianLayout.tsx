@@ -1,15 +1,14 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { BastData } from "../types";
-import type { ModuleMeta } from "../lib/modules";
-import { fieldOwner } from "../lib/modules";
+import { DOCS, DOC_BY_ID } from "../lib/modules";
+import type { DocId, PreviewTab } from "../lib/modules";
 import type { ValidationIssue } from "../lib/validation";
-import { countByLevel, issuesForModules } from "../lib/validation";
+import { countByLevel, issuesForDocs } from "../lib/validation";
 import { pdfFileName } from "../lib/text";
 import { printWithFileName } from "../lib/print";
 import PreviewStage from "./PreviewStage";
 import PrintGate from "./PrintGate";
-import type { GateIssue } from "./PrintGate";
 import { Btn } from "./ui";
 
 /* Ukuran kertas F4 / Folio */
@@ -18,36 +17,35 @@ const PAPER_W = 215 * MM;
 const PAPER_H = 330 * MM;
 
 interface Props {
-  meta: ModuleMeta;
   data: BastData;
   issues: ValidationIssue[];
-  /** bagian form modul (kolom kiri / kartu) */
+  /** seluruh isian (satu form) */
   form: ReactNode;
-  /** halaman pratinjau (PageCard). Tanpa ini modul tampil sebagai halaman form saja. */
-  children?: ReactNode;
-  /** konten tambahan di bawah kartu form (modul tanpa pratinjau) */
-  footer?: ReactNode;
+  /** halaman pratinjau sesuai tab aktif */
+  children: ReactNode;
+  /** dokumen yang sedang dilihat / akan dicetak */
+  tab: PreviewTab;
+  onTab: (t: PreviewTab) => void;
+  /** jumlah masalah per dokumen (titik warna di tab) */
+  docCounts: Record<DocId, { error: number; warning: number }>;
   /** chip status di toolbar pratinjau */
   statusChips?: ReactNode;
-  /** kontrol tambahan di toolbar pratinjau (mis. geser isi surat) */
-  toolbarExtra?: ReactNode;
   onGotoField: (path: string) => void;
 }
 
 /**
- * Kerangka tiap modul dokumen:
- * - dengan pratinjau → kolom form (kiri) + pratinjau kertas (kanan) + cetak
- * - tanpa pratinjau   → halaman form tunggal (mis. Data Umum)
+ * Kerangka halaman kerja: satu kolom form (kiri) untuk SEMUA dokumen +
+ * pratinjau & cetak (kanan) dengan tab pilih dokumen.
  */
-export default function ModuleLayout({
-  meta,
+export default function IsianLayout({
   data,
   issues,
   form,
   children,
-  footer,
+  tab,
+  onTab,
+  docCounts,
   statusChips,
-  toolbarExtra,
   onGotoField,
 }: Props) {
   const [zoom, setZoom] = useState(0.7);
@@ -57,23 +55,24 @@ export default function ModuleLayout({
   const [copied, setCopied] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
 
-  /* ---------- validasi khusus modul ini ---------- */
-  const moduleIssues = useMemo(
-    () => issuesForModules(issues, [meta.id]),
-    [issues, meta.id],
+  /* ---------- validasi dokumen yang sedang dipilih ---------- */
+  const tabDocs = useMemo<DocId[]>(
+    () => (tab === "semua" ? DOCS.map((d) => d.id) : [tab]),
+    [tab],
   );
-  const { error: errorCount, warning: warningCount } = useMemo(
-    () => countByLevel(moduleIssues),
-    [moduleIssues],
+  const tabIssues = useMemo(
+    () => issuesForDocs(issues, tabDocs),
+    [issues, tabDocs],
   );
-  const gateIssues = useMemo<GateIssue[]>(
-    () => moduleIssues.map((i) => ({ ...i, owner: fieldOwner(i.path) })),
-    [moduleIssues],
+  const { error: tabError, warning: tabWarning } = useMemo(
+    () => countByLevel(tabIssues),
+    [tabIssues],
   );
+  const total = useMemo(() => countByLevel(issues), [issues]);
 
   const fileName = useMemo(
-    () => pdfFileName(data, meta.filePrefix),
-    [data, meta.filePrefix],
+    () => pdfFileName(data, tab === "semua" ? "" : DOC_BY_ID[tab].filePrefix),
+    [data, tab],
   );
 
   /* ---------- zoom fitting ---------- */
@@ -108,7 +107,7 @@ export default function ModuleLayout({
   const runPrint = useCallback(() => printWithFileName(fileName), [fileName]);
 
   const printDocument = () => {
-    if (errorCount > 0 || warningCount > 0) {
+    if (tabError > 0 || tabWarning > 0) {
       setGateOpen(true);
       return;
     }
@@ -130,69 +129,32 @@ export default function ModuleLayout({
       active ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:text-slate-900"
     }`;
 
-  /* ================= MODUL TANPA PRATINJAU ================= */
-  if (!children) {
-    return (
-      <div className="flex h-full flex-col">
-        <div className="thin-scroll flex-1 overflow-y-auto">
-          <div className="mx-auto w-full max-w-3xl px-3 py-4 sm:px-5">
-            <div className="mb-3 flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div
-                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-[19px] shadow-sm ${meta.tile}`}
-              >
-                {meta.icon}
+  const printLabel =
+    tab === "semua" ? "🖨️ Cetak Semua Dokumen" : `🖨️ Cetak ${DOC_BY_ID[tab].short}`;
+
+  return (
+    <div className="flex flex-col lg:h-full lg:flex-row">
+      {/* ---------- FORM (semua isian) ---------- */}
+      {!focusMode && (
+        <aside className="no-print thin-scroll flex w-full flex-col border-r border-slate-200 bg-gradient-to-b from-slate-50 via-slate-50 to-slate-100 lg:w-[372px] lg:shrink-0 lg:overflow-y-auto">
+          <div className="relative sticky top-0 z-10 border-b border-slate-200 bg-white/90 px-3 py-2.5 backdrop-blur">
+            <span className="pointer-events-none absolute inset-x-0 top-0 h-[2.5px] bg-gradient-to-r from-indigo-500 to-violet-600" />
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 text-[13px]">
+                🗂️
               </div>
-              <div className="min-w-0 flex-1">
-                <h1 className="text-[15px] font-bold tracking-tight text-slate-900">
-                  {meta.label}
-                </h1>
-                <p className="mt-0.5 text-[11.5px] leading-snug text-slate-500">
-                  {meta.desc}
+              <div className="min-w-0">
+                <h2 className="text-[13.5px] font-bold tracking-tight text-slate-900">
+                  Isian Surat
+                </h2>
+                <p className="truncate text-[9.5px] font-medium uppercase tracking-[0.12em] text-slate-400">
+                  satu form untuk semua dokumen
                 </p>
               </div>
             </div>
 
-            <ValidationSummary issues={moduleIssues} onGotoField={onGotoField} />
-
-            <div className="mt-2 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-              {form}
-            </div>
-
-            {footer}
-
-            <p className="mt-3 px-1 text-[10px] leading-relaxed text-slate-400">
-              Semua isian tersimpan otomatis di browser dan langsung dipakai
-              modul Surat Tugas, Surat Penyerahan, BAST, dan Lampiran.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  /* ================= MODUL DENGAN PRATINJAU ================= */
-  return (
-    <div className="flex flex-col lg:h-full lg:flex-row">
-      {/* ---------- FORM ---------- */}
-      {!focusMode && (
-        <aside className="no-print thin-scroll flex w-full flex-col border-r border-slate-200 bg-gradient-to-b from-slate-50 via-slate-50 to-slate-100 lg:w-[352px] lg:shrink-0 lg:overflow-y-auto">
-          <div className="relative sticky top-0 z-10 border-b border-slate-200 bg-white/90 px-3 py-2.5 backdrop-blur">
-            <span
-              className={`pointer-events-none absolute inset-x-0 top-0 h-[2.5px] bg-gradient-to-r ${meta.tile}`}
-            />
-            <div className="flex items-center gap-2">
-              <div
-                className={`flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br text-[13px] ${meta.tile}`}
-              >
-                {meta.icon}
-              </div>
-              <h2 className="text-[13.5px] font-bold tracking-tight text-slate-900">
-                {meta.label}
-              </h2>
-            </div>
-
             <Btn variant="primary" className="mt-2 w-full" onClick={printDocument}>
-              🖨️ Cetak / Simpan PDF
+              {printLabel}
             </Btn>
 
             <div className="mt-1.5 flex items-center gap-1 rounded-md bg-slate-50 px-2 py-1 ring-1 ring-slate-200">
@@ -217,7 +179,16 @@ export default function ModuleLayout({
           </div>
 
           <div className="p-2.5">
-            <ValidationSummary issues={moduleIssues} onGotoField={onGotoField} />
+            <ValidationSummary
+              title={
+                tab === "semua"
+                  ? undefined
+                  : `Data untuk ${DOC_BY_ID[tab].label}`
+              }
+              issues={issues}
+              onGotoField={onGotoField}
+              total={total}
+            />
             <div className="mt-2">{form}</div>
             <p className="mt-3 px-1 text-[10px] leading-relaxed text-slate-400">
               Cetak dengan ukuran <b>F4 / Folio (215 × 330 mm)</b>, margin{" "}
@@ -230,23 +201,55 @@ export default function ModuleLayout({
       {/* ---------- PRATINJAU ---------- */}
       <main className="flex h-[82vh] min-w-0 flex-1 flex-col bg-[#e7eaf0] lg:h-auto">
         <div className="no-print flex flex-wrap items-center gap-2 border-b border-slate-300 bg-slate-100/90 px-3 py-2 backdrop-blur">
-          {statusChips}
-          {toolbarExtra}
+          {/* tab dokumen */}
+          <div className="thin-scroll flex max-w-full gap-1 overflow-x-auto">
+            <button
+              type="button"
+              onClick={() => onTab("semua")}
+              className={`shrink-0 rounded-full px-2.5 py-1 text-[11.5px] font-medium transition ${
+                tab === "semua"
+                  ? "bg-slate-900 text-white shadow-sm"
+                  : "bg-white text-slate-500 ring-1 ring-slate-200 hover:text-slate-900"
+              }`}
+            >
+              Semua dokumen
+            </button>
+            {DOCS.map((d) => {
+              const c = docCounts[d.id];
+              return (
+                <button
+                  key={d.id}
+                  type="button"
+                  onClick={() => onTab(d.id)}
+                  className={`flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-medium transition ${
+                    tab === d.id
+                      ? "bg-slate-900 text-white shadow-sm"
+                      : "bg-white text-slate-500 ring-1 ring-slate-200 hover:text-slate-900"
+                  }`}
+                >
+                  <span className="text-[12px] leading-none">{d.icon}</span>
+                  {d.short}
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      c.error > 0
+                        ? "bg-rose-400"
+                        : c.warning > 0
+                          ? "bg-amber-400"
+                          : "bg-emerald-400"
+                    }`}
+                  />
+                </button>
+              );
+            })}
+          </div>
 
           <div className="ml-auto flex items-center gap-1.5">
+            {statusChips}
             <div className="flex items-center gap-1 rounded-lg bg-white p-1 shadow-sm ring-1 ring-slate-200">
-              <button
-                onClick={() => setFitMode("width")}
-                className={tabBtn(fitMode === "width")}
-                title="Sesuaikan lebar"
-              >
+              <button onClick={() => setFitMode("width")} className={tabBtn(fitMode === "width")} title="Sesuaikan lebar">
                 Lebar
               </button>
-              <button
-                onClick={() => setFitMode("page")}
-                className={tabBtn(fitMode === "page")}
-                title="Satu halaman penuh"
-              >
+              <button onClick={() => setFitMode("page")} className={tabBtn(fitMode === "page")} title="Satu halaman penuh">
                 1 Halaman
               </button>
             </div>
@@ -276,7 +279,7 @@ export default function ModuleLayout({
               {focusMode ? "⤡ Tampilkan Form" : "⤢ Layar Penuh"}
             </Btn>
             <Btn variant="primary" onClick={printDocument}>
-              🖨️ Cetak
+              {printLabel}
             </Btn>
           </div>
         </div>
@@ -297,9 +300,8 @@ export default function ModuleLayout({
 
       <PrintGate
         open={gateOpen}
-        issues={gateIssues}
+        issues={tabIssues}
         fileName={`${fileName}.pdf`}
-        currentModule={meta.id}
         onClose={() => setGateOpen(false)}
         onPrint={() => {
           setGateOpen(false);
@@ -311,15 +313,19 @@ export default function ModuleLayout({
   );
 }
 
-/* ---------------- Ringkasan validasi modul ---------------- */
+/* ---------------- Ringkasan validasi form ---------------- */
 function ValidationSummary({
+  title,
   issues,
+  total,
   onGotoField,
 }: {
+  title?: string;
   issues: ValidationIssue[];
+  total: { error: number; warning: number };
   onGotoField: (path: string) => void;
 }) {
-  const { error: errorCount, warning: warningCount } = countByLevel(issues);
+  const { error: errorCount, warning: warningCount } = total;
 
   return (
     <div
@@ -338,7 +344,7 @@ function ValidationSummary({
             ? `${errorCount} wajib diisi`
             : warningCount
               ? `${warningCount} perlu diperiksa`
-              : "Data modul ini lengkap"}
+              : "Semua isian lengkap"}
         </span>
         {!!(errorCount || warningCount) && (
           <button
@@ -354,9 +360,12 @@ function ValidationSummary({
           </button>
         )}
       </div>
+      {title && (
+        <p className="mt-0.5 text-[10px] opacity-70">{title}</p>
+      )}
       {!!(errorCount || warningCount) && (
         <ul className="mt-1 space-y-0.5">
-          {issues.slice(0, 4).map((issue) => (
+          {issues.slice(0, 5).map((issue) => (
             <li key={`${issue.level}-${issue.path}`}>
               <button
                 type="button"
@@ -376,9 +385,9 @@ function ValidationSummary({
               </button>
             </li>
           ))}
-          {issues.length > 4 && (
+          {issues.length > 5 && (
             <li className="text-[10px] opacity-70">
-              dan {issues.length - 4} lainnya
+              dan {issues.length - 5} lainnya
             </li>
           )}
         </ul>

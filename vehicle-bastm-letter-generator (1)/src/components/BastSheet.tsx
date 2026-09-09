@@ -48,7 +48,7 @@ function Opt({ on, children }: { on: boolean; children: React.ReactNode }) {
 export default function BastSheet({ data }: { data: BastData }) {
   const cfg = PERLENGKAPAN[data.jenis];
   const rows = Math.max(cfg.left.length, cfg.right.length);
-  const hari = data.hariTanggal || hariTanggal(data.tanggalBast);
+  const hari = data.hariTanggal || hariTanggal(data.tanggalISO);
   const labelMesin = data.labelMesinBenar ? "No. Mesin" : "No. Rangka";
 
   const headCell: React.CSSProperties = { textAlign: "center", height: ROW_H };
@@ -109,7 +109,7 @@ export default function BastSheet({ data }: { data: BastData }) {
               </tr>
               <tr>
                 <td style={{ height: "5.2mm" }}>Tanggal</td>
-                <td>{data.tanggalBast ? `: ${tglPanjang(data.tanggalBast)}` : ""}</td>
+                <td>{data.tanggalISO ? `: ${tglPanjang(data.tanggalISO)}` : ""}</td>
               </tr>
             </tbody>
           </table>
@@ -316,7 +316,7 @@ export default function BastSheet({ data }: { data: BastData }) {
           <tr>
             <td colSpan={14} style={{ fontSize: "7.2pt", textAlign: "justify" }}>
               BAST unit ini adalah bagian yang menyatu dan tidak terpisahkan dari
-              Surat Tugas No. {data.noSuratTugas}, dan karenanya semua syarat dan
+              Surat Tugas No. {data.st.nomor}, dan karenanya semua syarat dan
               ketentuan yang tercantum dalam Surat Tugas tersebut berlaku pula
               untuk BAST unit ini.
             </td>

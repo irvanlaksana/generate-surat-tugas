@@ -6,7 +6,7 @@ import ts from 'typescript'
 
 // Exercise the actual form callback without a browser or database connection.
 const require = createRequire(import.meta.url)
-const source = readFileSync(new URL('../src/components/forms/SuratTugasForm.tsx', import.meta.url), 'utf8')
+const source = readFileSync(new URL('../src/components/forms/IsianForm.tsx', import.meta.url), 'utf8')
 const code = ts.transpileModule(source, {
   compilerOptions: {
     module: ts.ModuleKind.CommonJS,
@@ -14,16 +14,40 @@ const code = ts.transpileModule(source, {
     jsx: ts.JsxEmit.ReactJSX,
   },
 }).outputText
+
+// Semua dependensi form tunggal di-stub: yang diuji hanya callback PetugasDropdown.
+const stubs = {
+  '../../data/perlengkapan': {
+    PERLENGKAPAN: { roda2: { label: 'Roda 2' }, roda4: { label: 'Roda 4' } },
+  },
+  '../../lib/format': { hariTanggal: () => '' },
+  '../../lib/text': {
+    KREDITUR_DEFAULT: 'KREDITUR',
+    KREDITUR_PRESETS: [],
+    catatanKreditur: () => 'kalimat kreditur',
+    catatanKrediturText: () => 'kalimat kreditur',
+    countForDate: () => 0,
+    generateNomorST: () => 'ST-GEN/0001',
+    initialsOf: () => 'XX',
+    mitraLine: () => 'kalimat mitra',
+    nextCountForDate: () => 1,
+  },
+  '../../lib/modules': {
+    SECTIONS: [{ id: 'petugas', label: 'Petugas' }],
+    sectionAnchor: (id) => `bagian-${id}`,
+  },
+  '../ChecklistEditor': { default: 'ChecklistEditor' },
+  '../KopEditor': { default: 'KopEditor' },
+  '../LampiranUploads': { default: 'LampiranUploads' },
+  '../ui': Object.fromEntries(
+    ['Check', 'Field', 'Grid', 'GroupTitle', 'Segmented', 'TextArea', 'TextInput'].map((name) => [name, name]),
+  ),
+  '../ui/PetugasDropdown': { PetugasDropdown: 'PetugasDropdown' },
+  './formkit': { useIssueMaps: () => ({ E: () => undefined, W: () => undefined }) },
+}
+
 const exports = {}
-new Function('require', 'exports', code)((id) => {
-  if (id === '../../lib/text') return { countForDate: () => 0 }
-  if (id === './formkit') return { useIssueMaps: () => ({ E: () => undefined, W: () => undefined }) }
-  if (id === '../ui') return Object.fromEntries(
-    ['Field', 'Grid', 'GroupTitle', 'TextArea', 'TextInput'].map(name => [name, name]),
-  )
-  if (id === '../ui/PetugasDropdown') return { PetugasDropdown: 'PetugasDropdown' }
-  return require(id)
-}, exports)
+new Function('require', 'exports', code)((id) => stubs[id] ?? require(id), exports)
 
 function findDropdown(node) {
   if (!node || typeof node !== 'object') return undefined
@@ -37,19 +61,23 @@ function findDropdown(node) {
 
 function setup() {
   let data = {
+    jenis: 'roda4',
+    kreditur: 'Koperasi Anugrah Mega Mandiri (KAMM)',
+    tanggalISO: '2026-09-08',
+    checklist: {},
     st: {
       petugasNama: 'PETUGAS LAMA',
       petugasNik: '3302195408790001',
       petugasJabatan: 'Petugas Penagihan',
       nomor: 'ST-TEST/001',
-      nasabahNama: 'NASABAH TEST',
-      tanggalSuratISO: '2026-09-08',
     },
   }
   const updates = []
   const render = () => findDropdown(exports.default({
     data,
     issues: [],
+    setJenis: () => {},
+    setChecklist: () => {},
     set: (key, value) => {
       updates.push({ key, value })
       data = { ...data, [key]: value }

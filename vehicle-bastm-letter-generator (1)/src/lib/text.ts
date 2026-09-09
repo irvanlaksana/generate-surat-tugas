@@ -106,9 +106,9 @@ export function nextCountForDate(iso: string): number {
 export function generateNomorST(d: {
   mitraNama: string;
   kreditur: string;
-  tanggalSuratISO: string;
+  tanggalISO: string;
 }, countOfDay: number): string {
-  const iso = d.tanggalSuratISO || todayISO();
+  const iso = d.tanggalISO || todayISO();
   const yy = iso.slice(0, 4);
   const mm = iso.slice(5, 7);
   const mitra = initialsOf(d.mitraNama || "PT MITRA JASATRIA INDONESIA");

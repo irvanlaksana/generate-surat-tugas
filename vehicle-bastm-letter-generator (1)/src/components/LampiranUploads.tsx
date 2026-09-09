@@ -1,18 +1,15 @@
-import type { BastData } from "../../types";
-import type { ValidationIssue } from "../../lib/validation";
-import { Grid, GroupTitle, UploadBox } from "../ui";
-import { DebiturRingkas, useIssueMaps } from "./formkit";
+import type { BastData } from "../types";
+import { Grid, UploadBox } from "./ui";
 
 interface Props {
   data: BastData;
   set: <K extends keyof BastData>(key: K, value: BastData[K]) => void;
-  issues: ValidationIssue[];
+  /** pesan warning per path (lampiran.ktp / lampiran.stnk) */
+  warn: (path: string) => string | undefined;
 }
 
-/** Form modul Lampiran — unggah foto KTP & STNK. */
-export default function LampiranForm({ data, set, issues }: Props) {
-  const { W } = useIssueMaps(issues);
-
+/** Unggah foto KTP & STNK — bagian lampiran dari form isian tunggal. */
+export default function LampiranUploads({ data, set, warn }: Props) {
   const addLampiran = async (jenis: "ktp" | "stnk", files: FileList | null) => {
     if (!files?.length) return;
     const images = await Promise.all(
@@ -39,17 +36,14 @@ export default function LampiranForm({ data, set, issues }: Props) {
     });
 
   return (
-    <div className="space-y-1">
-      <DebiturRingkas data={data} />
-
-      <GroupTitle hint="KTP di atas, STNK di bawah">Unggah Dokumen</GroupTitle>
+    <>
       <Grid cols={2}>
         <div data-field="lampiran.ktp">
           <UploadBox
             label="Upload KTP"
-            hint={W("lampiran.ktp") ?? "klik / seret foto"}
+            hint={warn("lampiran.ktp") ?? "klik / seret foto"}
             icon="🪪"
-            invalid={!!W("lampiran.ktp")}
+            invalid={!!warn("lampiran.ktp")}
             images={data.lampiran.ktp}
             onFiles={(files) => void addLampiran("ktp", files)}
             onRemove={(i) => removeLampiran("ktp", i)}
@@ -58,9 +52,9 @@ export default function LampiranForm({ data, set, issues }: Props) {
         <div data-field="lampiran.stnk">
           <UploadBox
             label="Upload STNK"
-            hint={W("lampiran.stnk") ?? "klik / seret foto"}
+            hint={warn("lampiran.stnk") ?? "klik / seret foto"}
             icon="📄"
-            invalid={!!W("lampiran.stnk")}
+            invalid={!!warn("lampiran.stnk")}
             images={data.lampiran.stnk}
             onFiles={(files) => void addLampiran("stnk", files)}
             onRemove={(i) => removeLampiran("stnk", i)}
@@ -68,10 +62,10 @@ export default function LampiranForm({ data, set, issues }: Props) {
         </div>
       </Grid>
 
-      <p className="mt-2 rounded-md bg-slate-50 px-2 py-1.5 text-[10px] leading-relaxed text-slate-500 ring-1 ring-slate-200">
+      <p className="mt-1.5 rounded-md bg-slate-50 px-2 py-1.5 text-[10px] leading-relaxed text-slate-500 ring-1 ring-slate-200">
         Foto otomatis tersusun 2 kolom per kelompok (KTP lalu STNK) pada satu
         halaman F4. Boleh unggah lebih dari satu foto per kelompok.
       </p>
-    </div>
+    </>
   );
 }

@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { digitsOnly, ribuan } from "../lib/format";
 
 /* ---------------- Penanda grup (aliran form, bukan panel terpisah) -------- */
 export function GroupTitle({
@@ -113,6 +114,36 @@ export function TextInput(
         onChange?.(e);
       }}
     />
+  );
+}
+
+/* ---------------- Input rupiah — otomatis jadi "652.000" saat diketik ------ */
+export function RupiahInput({
+  value,
+  onValue,
+  invalid,
+  placeholder,
+}: {
+  /** angka saja, tanpa "Rp" & pemisah (mis. "652000") */
+  value: string;
+  onValue: (digits: string) => void;
+  invalid?: boolean;
+  placeholder?: string;
+}) {
+  return (
+    <div className="relative">
+      <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[11px] font-semibold text-slate-400">
+        Rp
+      </span>
+      <TextInput
+        invalid={invalid}
+        inputMode="numeric"
+        className="pl-8 text-right tabular-nums"
+        value={ribuan(value)}
+        placeholder={placeholder}
+        onChange={(e) => onValue(digitsOnly(e.target.value))}
+      />
+    </div>
   );
 }
 

@@ -73,5 +73,5 @@ isSupabaseConfigured: boolean
 
 Modul **Manajemen Debitur** beserta tabel `debitur` telah dihapus dari
 aplikasi. Data debitur yang dicetak pada surat (nama, alamat, no. perjanjian,
-KTP, dll.) diisi langsung di modul **Data Umum** — seperti sebelum adanya
-modul tersebut.
+KTP, dll.) diisi langsung di halaman **Isian Surat** — satu form untuk semua
+dokumen.

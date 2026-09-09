@@ -1,19 +1,13 @@
-import type { ModuleId } from "../lib/modules";
-import { MODULE_BY_ID } from "../lib/modules";
 import type { ValidationIssue } from "../lib/validation";
 import { Btn } from "./ui";
 
-/** Issue validasi + modul tempat field-nya bisa diperbaiki. */
-export interface GateIssue extends ValidationIssue {
-  owner?: ModuleId;
-}
+/** Issue validasi yang ditampilkan sebelum cetak. */
+export type GateIssue = ValidationIssue;
 
 interface Props {
   open: boolean;
   issues: GateIssue[];
   fileName: string;
-  /** modul halaman ini — issue milik modul lain diberi tanda untuk lompat */
-  currentModule?: ModuleId;
   onClose: () => void;
   onPrint: () => void;
   onGotoField: (path: string) => void;
@@ -22,13 +16,12 @@ interface Props {
 /**
  * Gerbang sebelum cetak: cegah "Simpan PDF" bila data wajib belum lengkap,
  * dan tampilkan daftar peringatan supaya tidak ada field yang terlewat.
- * Tombol "perbaiki" otomatis berpindah ke modul pemilik field.
+ * Tombol "perbaiki" langsung menggulir ke field di form isian.
  */
 export default function PrintGate({
   open,
   issues,
   fileName,
-  currentModule,
   onClose,
   onPrint,
   onGotoField,
@@ -42,15 +35,6 @@ export default function PrintGate({
   const perbaiki = (path: string) => {
     onClose();
     onGotoField(path);
-  };
-
-  const ownerTag = (issue: GateIssue) => {
-    if (!issue.owner || issue.owner === currentModule) return null;
-    return (
-      <span className="shrink-0 rounded bg-white/80 px-1.5 py-[1px] text-[9px] font-semibold uppercase tracking-wide text-slate-500 ring-1 ring-slate-200">
-        di {MODULE_BY_ID[issue.owner].short}
-      </span>
-    );
   };
 
   return (
@@ -102,7 +86,6 @@ export default function PrintGate({
                     <span className="shrink-0 text-[10.5px] text-rose-500">
                       {issue.message}
                     </span>
-                    {ownerTag(issue)}
                     <span className="ml-auto shrink-0 text-[10px] text-rose-400">
                       perbaiki →
                     </span>
@@ -127,7 +110,6 @@ export default function PrintGate({
                     <span className="shrink-0 text-[10.5px] text-amber-600">
                       {issue.message}
                     </span>
-                    {ownerTag(issue)}
                     <span className="ml-auto shrink-0 text-[10px] text-amber-400">
                       isi →
                     </span>

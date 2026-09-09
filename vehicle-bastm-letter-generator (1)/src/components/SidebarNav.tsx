@@ -1,10 +1,14 @@
-import { MODULES } from "../lib/modules";
-import type { ModuleId, RouteId } from "../lib/modules";
+import { DOCS } from "../lib/modules";
+import type { DocId, PreviewTab, RouteId } from "../lib/modules";
 
 interface Props {
   route: RouteId;
+  tab: PreviewTab;
   onRoute: (r: RouteId) => void;
-  moduleCounts: Record<ModuleId, { error: number; warning: number }>;
+  /** buka halaman isian, langsung ke tab dokumen tertentu */
+  onOpenDoc: (t: PreviewTab) => void;
+  docCounts: Record<DocId, { error: number; warning: number }>;
+  formCounts: { error: number; warning: number };
   onContoh: () => void;
   onReset: () => void;
 }
@@ -15,14 +19,19 @@ function dotClass(count: { error: number; warning: number }): string {
   return "bg-emerald-400";
 }
 
-/** Navigasi modul: sidebar gelap di desktop + baris chip di mobile. */
+/** Navigasi: Beranda, form isian tunggal, dan pintasan dokumen. */
 export default function SidebarNav({
   route,
+  tab,
   onRoute,
-  moduleCounts,
+  onOpenDoc,
+  docCounts,
+  formCounts,
   onContoh,
   onReset,
 }: Props) {
+  const isianActive = route === "isian";
+
   return (
     <>
       {/* ================== DESKTOP ================== */}
@@ -36,7 +45,7 @@ export default function SidebarNav({
               Generator Surat
             </h1>
             <p className="text-[9.5px] font-medium uppercase tracking-[0.14em] text-slate-500">
-              Tugas · Penyerahan · BAST
+              Satu isian · 4 dokumen
             </p>
           </div>
         </div>
@@ -48,29 +57,25 @@ export default function SidebarNav({
             active={route === "home"}
             onClick={() => onRoute("home")}
           />
-
-          <p className="px-2.5 pb-1 pt-3 text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500">
-            Data
-          </p>
           <NavItem
-            icon={MODULES[0].icon}
-            label={MODULES[0].label}
-            active={route === "umum"}
-            dot={dotClass(moduleCounts.umum)}
-            onClick={() => onRoute("umum")}
+            icon="🗂️"
+            label="Isian Surat"
+            active={isianActive && tab === "semua"}
+            dot={dotClass(formCounts)}
+            onClick={() => onOpenDoc("semua")}
           />
 
           <p className="px-2.5 pb-1 pt-3 text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500">
-            Modul Dokumen
+            Pratinjau Dokumen
           </p>
-          {MODULES.slice(1).map((m) => (
+          {DOCS.map((d) => (
             <NavItem
-              key={m.id}
-              icon={m.icon}
-              label={m.label}
-              active={route === m.id}
-              dot={dotClass(moduleCounts[m.id])}
-              onClick={() => onRoute(m.id)}
+              key={d.id}
+              icon={d.icon}
+              label={d.label}
+              active={isianActive && tab === d.id}
+              dot={dotClass(docCounts[d.id])}
+              onClick={() => onOpenDoc(d.id)}
             />
           ))}
         </nav>
@@ -106,7 +111,7 @@ export default function SidebarNav({
           </div>
           <span className="text-[13px] font-bold tracking-tight">Generator Surat</span>
           <span className="ml-auto text-[9.5px] font-medium uppercase tracking-[0.14em] text-slate-500">
-            Tugas · Penyerahan · BAST
+            Satu isian
           </span>
         </div>
         <div className="thin-scroll flex gap-1 overflow-x-auto px-2 pb-2 pt-1">
@@ -116,14 +121,21 @@ export default function SidebarNav({
             active={route === "home"}
             onClick={() => onRoute("home")}
           />
-          {MODULES.map((m) => (
+          <Chip
+            icon="🗂️"
+            label="Isian Surat"
+            active={isianActive && tab === "semua"}
+            dot={dotClass(formCounts)}
+            onClick={() => onOpenDoc("semua")}
+          />
+          {DOCS.map((d) => (
             <Chip
-              key={m.id}
-              icon={m.icon}
-              label={m.short}
-              active={route === m.id}
-              dot={dotClass(moduleCounts[m.id])}
-              onClick={() => onRoute(m.id)}
+              key={d.id}
+              icon={d.icon}
+              label={d.short}
+              active={isianActive && tab === d.id}
+              dot={dotClass(docCounts[d.id])}
+              onClick={() => onOpenDoc(d.id)}
             />
           ))}
         </div>

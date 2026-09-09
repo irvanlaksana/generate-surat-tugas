@@ -1,5 +1,5 @@
 import type { BastData, KopSurat } from "../types";
-import { tglPanjang } from "../lib/format";
+import { rupiah, tglPanjang } from "../lib/format";
 
 /* ---------------- Kop surat (bisa diupload & diatur) ---------------- */
 export function KopBlock({ kop }: { kop: KopSurat }) {
@@ -49,7 +49,7 @@ function KopPlaceholder({ kop }: { kop: KopSurat }) {
         fontSize: "9pt",
       }}
     >
-      Upload kop surat pada panel “Surat Tugas → Kop Surat”
+      Upload kop surat di panel isian → bagian “Perusahaan &amp; Kop Surat”
     </div>
   );
 }
@@ -106,17 +106,23 @@ function Row({ label, value }: { label: string; value: string }) {
 
 /* ================= HALAMAN 1 ================= */
 export function SuratTugasHal1({ data }: { data: BastData }) {
-  const s = { ...data.st, perusahaan: data.mitraNama || data.st.perusahaan };
+  const s = data.st;
+  const mitra = data.mitraNama;
   const kreditur = data.kreditur;
 
   /** Alamat nasabah + kecamatan (kecamatan hanya ditambah bila belum ada) */
   const kec = data.kecamatan.trim().toUpperCase();
   const alamatNasabah = [
-    s.nasabahAlamat.trim(),
-    kec && !s.nasabahAlamat.toUpperCase().includes(kec) ? `Kec. ${kec}` : "",
+    data.alamatDebitur.trim(),
+    kec && !data.alamatDebitur.toUpperCase().includes(kec) ? `Kec. ${kec}` : "",
   ]
     .filter(Boolean)
     .join(", ");
+
+  /** "Rp. 652.000 / Rp. 11.736.000" dari dua isian terpisah */
+  const angsuranTotal = [rupiah(s.angsuran), rupiah(s.totalAngsuran)]
+    .filter(Boolean)
+    .join(" / ");
 
   const cell: React.CSSProperties = {
     border: "1px solid #d0d0d0",
@@ -147,7 +153,7 @@ export function SuratTugasHal1({ data }: { data: BastData }) {
 
       <P>
         Yang bertanda tangan di bawah ini, mewakili Manajemen{" "}
-        <b>{s.perusahaan}</b>:
+        <b>{mitra}</b>:
       </P>
 
       <table
@@ -204,26 +210,26 @@ export function SuratTugasHal1({ data }: { data: BastData }) {
       <P>
         Untuk melakukan konfirmasi, penagihan, dan negosiasi penyelesaian
         kewajiban pembayaran atas nama Debitur/Nasabah dari <b>{kreditur}</b>{" "}
-        yang penagihannya dikuasakan kepada <b>{s.perusahaan}</b>.
+        yang penagihannya dikuasakan kepada <b>{mitra}</b>.
       </P>
 
       <div style={{ marginBottom: "3mm" }}>
         <div>Berikut data nasabah :</div>
-        <Row label="No. Kontrak" value={s.noKontrak} />
-        <Row label="Nama" value={s.nasabahNama} />
+        <Row label="No. Kontrak" value={data.noPerjanjian} />
+        <Row label="Nama" value={data.namaDebitur} />
         <Row label="Alamat" value={alamatNasabah} />
         <Row label="Tanggal Jatuh Tempo" value={s.jatuhTempo} />
         {!!s.noAngsuran.trim() && (
           <Row label="No. Angsuran" value={s.noAngsuran} />
         )}
-        <Row label="Angsuran / Total" value={s.angsuranNilai} />
-        <Row label="DENDA" value={s.denda} />
+        <Row label="Angsuran / Total" value={angsuranTotal} />
+        <Row label="DENDA" value={rupiah(s.denda)} />
       </div>
 
       <div style={{ marginBottom: "5mm" }}>
         <div>Adapun spessifikasi kendaraan sebagai berikut :</div>
-        <Row label="Merk/Type" value={s.merkType} />
-        <Row label="Nomor Polisi" value={s.noPolisi} />
+        <Row label="Merk/Type" value={data.merekType} />
+        <Row label="Nomor Polisi" value={data.noPolisi} />
       </div>
 
       <P>
@@ -238,7 +244,7 @@ export function SuratTugasHal1({ data }: { data: BastData }) {
         <b>{s.berlakuDari}</b> sampai dengan tanggal <b>{s.berlakuSampai}</b>.
         Apabila masa berlaku telah berakhir, Surat Tugas ini dinyatakan tidak
         berlaku lagi dan wajib diperpanjang melalui persetujuan Manajemen{" "}
-        <b>{s.perusahaan}.</b>
+        <b>{mitra}.</b>
       </P>
 
       <H>WEWENANG DAN TANGGUNG JAWAB PETUGAS</H>
@@ -265,7 +271,8 @@ export function SuratTugasHal1({ data }: { data: BastData }) {
 
 /* ================= HALAMAN 2 ================= */
 export function SuratTugasHal2({ data }: { data: BastData }) {
-  const s = { ...data.st, perusahaan: data.mitraNama || data.st.perusahaan };
+  const s = data.st;
+  const mitra = data.mitraNama;
 
   return (
     <div className="sheet sheet-tugas">
@@ -306,7 +313,7 @@ export function SuratTugasHal2({ data }: { data: BastData }) {
         <Bullet>
           Petugas wajib melaporkan hasil penagihan (Field Report) secara
           real-time melalui sistem aplikasi penagihan resmi{" "}
-          <b>{s.perusahaan}</b> pada hari yang sama.
+          <b>{mitra}</b> pada hari yang sama.
         </Bullet>
       </List>
 
@@ -322,7 +329,7 @@ export function SuratTugasHal2({ data }: { data: BastData }) {
         <Bullet>
           Tindakan pelanggaran hukum yang dilakukan oleh Petugas di luar prosedur
           resmi Perusahaan menjadi tanggung jawab pribadi petugas bersangkutan
-          secara pidana maupun perdata ({s.perusahaan} membebaskan diri dari
+          secara pidana maupun perdata ({mitra} membebaskan diri dari
           segala tuntutan hukum akibat penyimpangan oknum).
         </Bullet>
       </List>
@@ -330,7 +337,7 @@ export function SuratTugasHal2({ data }: { data: BastData }) {
       <P>
         Demikian Surat Tugas ini diterbitkan untuk dipergunakan sebagaimana
         mestinya dan dilaksanakan dengan penuh rasa tanggung jawab demi menjaga
-        integritas, profesionalisme, dan nama baik <b>{s.perusahaan}</b> serta
+        integritas, profesionalisme, dan nama baik <b>{mitra}</b> serta
         Kreditur.
       </P>
 
@@ -340,7 +347,7 @@ export function SuratTugasHal2({ data }: { data: BastData }) {
         <tbody>
           <tr>
             <td style={{ width: "52%" }}>
-              {s.kota}, {tglPanjang(s.tanggalSuratISO) || s.tanggalSuratISO}
+              {s.kota}, {tglPanjang(data.tanggalISO) || data.tanggalISO}
             </td>
             <td />
           </tr>
@@ -349,7 +356,7 @@ export function SuratTugasHal2({ data }: { data: BastData }) {
             <td>Penerima Tugas,</td>
           </tr>
           <tr>
-            <td>{s.perusahaan}</td>
+            <td>{mitra}</td>
             <td>PETUGAS PENAGIHAN</td>
           </tr>
           <tr style={{ height: "26mm" }}>

@@ -19,27 +19,27 @@ export interface KopSurat {
   kontenY2: number; // mm, khusus halaman 2
 }
 
+/**
+ * Isian yang hanya dipakai Surat Tugas.
+ * Semua data lain (debitur, kendaraan, tanggal, nomor perjanjian, mitra, …)
+ * berada di level atas BastData dan dipakai bersama oleh semua dokumen —
+ * jadi satu isian saja untuk seluruh surat.
+ */
 export interface SuratTugasData {
-  nomor: string;
-  perusahaan: string;
+  nomor: string; // nomor Surat Tugas — juga dicetak di kaki BAST
   pemberiNama: string;
   pemberiJabatan: string;
   petugasNama: string;
   petugasNik: string;
   petugasJabatan: string;
-  noKontrak: string;
-  nasabahNama: string;
-  nasabahAlamat: string;
   jatuhTempo: string;
   noAngsuran: string; // nomor / urutan angsuran yang menunggak
-  angsuranNilai: string;
-  denda: string;
-  merkType: string;
-  noPolisi: string;
+  angsuran: string; // angka saja, dicetak "Rp. 652.000"
+  totalAngsuran: string; // angka saja, total tagihan
+  denda: string; // angka saja
   berlakuDari: string;
   berlakuSampai: string;
   kota: string;
-  tanggalSuratISO: string; // yyyy-mm-dd
 }
 
 export type CheckState = "" | "A" | "TA";
@@ -56,22 +56,24 @@ export type ChecklistMap = Record<string, ChecklistEntry>;
 export interface BastData {
   jenis: VehicleType;
 
-  /* Kop surat */
+  /* Tanggal dokumen — satu isian untuk Surat Tugas & BAST */
+  tanggalISO: string; // yyyy-mm-dd
+
+  /* Identitas perusahaan (kreditur / penerima kendaraan) */
   perusahaan: string;
   cabang: string;
   alamat: string;
 
-  /* Dokumen */
+  /* Nomor dokumen */
   noBast: string;
-  tanggalBast: string; // yyyy-mm-dd
-  hariTanggal: string; // teks bebas, kosong = auto dari tanggalBast
-  noSuratTugas: string;
-
-  /* Perjanjian */
-  noPerjanjian: string;
+  hariTanggal: string; // teks bebas, kosong = auto dari tanggalISO
+  noPerjanjian: string; // No. Kontrak = No. Perjanjian Pembiayaan
   tglPerjanjian: string;
+
+  /* Debitur / nasabah */
   namaDebitur: string;
   kecamatan: string; // kecamatan debitur — dipakai di nama file PDF
+  alamatDebitur: string; // alamat nasabah, dicetak di Surat Tugas
   bpkbAtasNama: string;
 
   /* Catatan kreditur */
@@ -81,7 +83,7 @@ export interface BastData {
   tampilkanCatatanPenyerahan: boolean;
 
   /* Perusahaan mitra (pelaksana penagihan/penarikan) */
-  mitraNama: string;
+  mitraNama: string; // juga jadi "Manajemen …" di Surat Tugas
   mitraLegalitas: string; // Nomor AHU / izin
   mitraAlamat: string;
   mitraPic: string; // penanggung jawab lapangan
@@ -112,7 +114,7 @@ export interface BastData {
   /* Lampiran dokumen */
   lampiran: LampiranData;
 
-  /* Surat Tugas */
+  /* Kop surat & isian khusus Surat Tugas */
   kop: KopSurat;
   st: SuratTugasData;
 }

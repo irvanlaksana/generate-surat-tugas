@@ -1,36 +1,29 @@
 /**
- * Definisi modul aplikasi.
- * Setiap dokumen (Surat Tugas, Surat Penyerahan, BAST, Lampiran) menjadi
- * modul terpisah dengan form & pratinjau masing-masing, sementara Data Umum
- * menampung data yang dipakai bersama.
+ * Definisi dokumen & bagian form.
+ *
+ * Semua isian surat berada dalam **satu form** (modul "isian"); data yang
+ * dipakai bersama hanya diisi sekali. Dokumen (Surat Tugas, Surat Penyerahan,
+ * BAST, Lampiran) tinggal dipilih di pratinjau untuk dicetak.
  */
 
-export type ModuleId = "umum" | "tugas" | "penyerahan" | "bast" | "lampiran";
-export type RouteId = "home" | ModuleId;
+export type DocId = "tugas" | "penyerahan" | "bast" | "lampiran";
+export type RouteId = "home" | "isian";
+/** Dokumen yang sedang dilihat / dicetak di pratinjau. */
+export type PreviewTab = "semua" | DocId;
 
-export interface ModuleMeta {
-  id: ModuleId;
+export interface DocMeta {
+  id: DocId;
   label: string;
-  /** nama pendek untuk chip / tanda kecil */
   short: string;
   icon: string;
   desc: string;
   /** kelas gradient Tailwind (from-… to-…) untuk ubin ikon */
   tile: string;
-  /** awalan nama file PDF saat dicetak dari modul ini */
+  /** awalan nama file PDF saat dokumen ini dicetak sendiri */
   filePrefix: string;
 }
 
-export const MODULES: ModuleMeta[] = [
-  {
-    id: "umum",
-    label: "Data Umum",
-    short: "Data Umum",
-    icon: "🗂️",
-    desc: "Data debitur, kendaraan, kreditur, mitra, identitas perusahaan, & kop surat — dipakai bersama semua dokumen.",
-    tile: "from-slate-500 to-slate-700",
-    filePrefix: "",
-  },
+export const DOCS: DocMeta[] = [
   {
     id: "tugas",
     label: "Surat Tugas",
@@ -69,42 +62,128 @@ export const MODULES: ModuleMeta[] = [
   },
 ];
 
-export const MODULE_BY_ID: Record<ModuleId, ModuleMeta> = {
-  umum: MODULES[0],
-  tugas: MODULES[1],
-  penyerahan: MODULES[2],
-  bast: MODULES[3],
-  lampiran: MODULES[4],
+export const DOC_BY_ID: Record<DocId, DocMeta> = {
+  tugas: DOCS[0],
+  penyerahan: DOCS[1],
+  bast: DOCS[2],
+  lampiran: DOCS[3],
 };
 
-/**
- * Modul tempat sebuah field terutama diedit — dipakai tombol "perbaiki"
- * untuk berpindah modul saat validasi gagal.
- */
-export function fieldOwner(path: string): ModuleId {
-  if (path.startsWith("st.")) return "tugas";
-  if (path.startsWith("lampiran")) return "lampiran";
-  if (path.startsWith("kop")) return "umum";
-  switch (path) {
-    case "noBast":
-    case "tanggalBast":
-    case "hariTanggal":
-    case "noSuratTugas":
-    case "penyelesaian":
-    case "karoseri":
-    case "labelMesinBenar":
-    case "tampilkanCatatanBast":
-    case "tampilkanMitraBast":
-    case "mitraSebagaiPenerima":
-    case "ttdBertandatangan":
-    case "ttdMenerima1":
-    case "ttdMenyerahkan":
-    case "ttdMenerima2":
-    case "checklist":
-      return "bast";
-    case "tampilkanCatatanPenyerahan":
-      return "penyerahan";
-    default:
-      return "umum";
-  }
+/* ------------------------------------------------------------------ */
+/* Bagian (grup) di dalam satu form isian                              */
+/* ------------------------------------------------------------------ */
+
+export type SectionId =
+  | "debitur"
+  | "perjanjian"
+  | "kendaraan"
+  | "petugas"
+  | "nomor"
+  | "kreditur"
+  | "perusahaan"
+  | "checklist"
+  | "opsi"
+  | "lampiran";
+
+export interface SectionMeta {
+  id: SectionId;
+  label: string;
+  hint: string;
 }
+
+export const SECTIONS: SectionMeta[] = [
+  { id: "debitur", label: "Debitur", hint: "jenis kendaraan & identitas debitur" },
+  { id: "perjanjian", label: "Perjanjian & Tagihan", hint: "kontrak, angsuran, denda" },
+  { id: "kendaraan", label: "Data Kendaraan", hint: "sesuai STNK / BPKB" },
+  { id: "petugas", label: "Petugas & Pemberi Tugas", hint: "pelaksana lapangan" },
+  { id: "nomor", label: "Nomor, Tanggal & Masa Berlaku", hint: "Surat Tugas & BAST" },
+  { id: "kreditur", label: "Kreditur & Mitra", hint: "pemilik piutang & pelaksana" },
+  { id: "perusahaan", label: "Perusahaan & Kop Surat", hint: "kop teks & gambar" },
+  { id: "checklist", label: "Checklist Perlengkapan", hint: "tabel BAST" },
+  { id: "opsi", label: "Opsi & Tanda Tangan", hint: "kalimat cetak & kolom TTD" },
+  { id: "lampiran", label: "Lampiran Foto", hint: "KTP & STNK" },
+];
+
+/** Peta field → bagian form, dipakai tombol "perbaiki" & navigasi antar grup. */
+const SECTION_OF: Record<string, SectionId> = {
+  /* Debitur */
+  jenis: "debitur",
+  namaDebitur: "debitur",
+  kecamatan: "debitur",
+  alamatDebitur: "debitur",
+
+  /* Perjanjian & tagihan */
+  noPerjanjian: "perjanjian",
+  tglPerjanjian: "perjanjian",
+  "st.jatuhTempo": "perjanjian",
+  "st.noAngsuran": "perjanjian",
+  "st.angsuran": "perjanjian",
+  "st.totalAngsuran": "perjanjian",
+  "st.denda": "perjanjian",
+
+  /* Kendaraan */
+  merekType: "kendaraan",
+  noRangka: "kendaraan",
+  noMesin: "kendaraan",
+  noPolisi: "kendaraan",
+  warna: "kendaraan",
+  tahun: "kendaraan",
+  bpkbAtasNama: "kendaraan",
+
+  /* Petugas */
+  "st.petugasNama": "petugas",
+  "st.petugasNik": "petugas",
+  "st.petugasJabatan": "petugas",
+  "st.pemberiNama": "petugas",
+  "st.pemberiJabatan": "petugas",
+
+  /* Nomor, tanggal & masa berlaku */
+  "st.nomor": "nomor",
+  tanggalISO: "nomor",
+  noBast: "nomor",
+  hariTanggal: "nomor",
+  "st.berlakuDari": "nomor",
+  "st.berlakuSampai": "nomor",
+  "st.kota": "nomor",
+
+  /* Kreditur & mitra */
+  kreditur: "kreditur",
+  catatanKreditur: "kreditur",
+  mitraNama: "kreditur",
+  mitraLegalitas: "kreditur",
+  mitraAlamat: "kreditur",
+  mitraPic: "kreditur",
+
+  /* Perusahaan & kop */
+  perusahaan: "perusahaan",
+  cabang: "perusahaan",
+  alamat: "perusahaan",
+
+  /* Opsi & tanda tangan */
+  penyelesaian: "opsi",
+  karoseri: "opsi",
+  labelMesinBenar: "opsi",
+  tampilkanCatatanBast: "opsi",
+  tampilkanCatatanPenyerahan: "opsi",
+  tampilkanMitraBast: "opsi",
+  mitraSebagaiPenerima: "opsi",
+  ttdBertandatangan: "opsi",
+  ttdMenerima1: "opsi",
+  ttdMenyerahkan: "opsi",
+  ttdMenerima2: "opsi",
+
+  /* Checklist & lampiran */
+  checklist: "checklist",
+};
+
+/** Bagian form tempat sebuah field diedit. */
+export function sectionOf(path: string): SectionId {
+  if (SECTION_OF[path]) return SECTION_OF[path];
+  if (path.startsWith("kop")) return "perusahaan";
+  if (path.startsWith("lampiran")) return "lampiran";
+  if (path.startsWith("st.")) return "nomor";
+  return "debitur";
+}
+
+/** id HTML anchor tiap bagian form. */
+export const sectionAnchor = (id: SectionId): string => `bagian-${id}`;

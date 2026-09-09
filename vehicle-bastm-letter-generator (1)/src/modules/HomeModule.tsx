@@ -106,9 +106,9 @@ export default function HomeModule({
             <p className="mt-1.5 max-w-xl text-[12.5px] leading-relaxed text-slate-300">
               Isi <b className="text-slate-100">satu form</b> untuk{" "}
               <b className="text-slate-100">Surat Tugas</b>,{" "}
-              <b className="text-slate-100">Surat Penyerahan</b>,{" "}
-              <b className="text-slate-100">BAST Kendaraan</b>, dan{" "}
-              <b className="text-slate-100">Lampiran</b> — data yang sama hanya
+              <b className="text-slate-100">Lampiran</b>,{" "}
+              <b className="text-slate-100">Surat Penyerahan</b>, dan{" "}
+              <b className="text-slate-100">BASTK</b> — data yang sama hanya
               diisi sekali, tidak ada isian ganda.
             </p>
 

@@ -14,6 +14,8 @@ export type PreviewTab = "semua" | DocId;
 export interface DocMeta {
   id: DocId;
   label: string;
+  /** label ringkas khusus untuk menu utama */
+  menuLabel?: string;
   short: string;
   icon: string;
   desc: string;
@@ -23,6 +25,7 @@ export interface DocMeta {
   filePrefix: string;
 }
 
+/** Urutan ini juga dipakai oleh menu, tab pratinjau, dan kartu Beranda. */
 export const DOCS: DocMeta[] = [
   {
     id: "tugas",
@@ -34,8 +37,19 @@ export const DOCS: DocMeta[] = [
     filePrefix: "ST",
   },
   {
+    id: "lampiran",
+    label: "Lampiran Dokumen",
+    menuLabel: "Lampiran",
+    short: "Lampiran",
+    icon: "📎",
+    desc: "Lampiran foto KTP & STNK debitur dalam satu halaman.",
+    tile: "from-sky-500 to-blue-600",
+    filePrefix: "LAMPIRAN",
+  },
+  {
     id: "penyerahan",
     label: "Surat Penyerahan",
+    menuLabel: "Penyerahan",
     short: "Penyerahan",
     icon: "🤝",
     desc: "Pernyataan penyerahan kendaraan secara sukarela oleh debitur.",
@@ -45,28 +59,20 @@ export const DOCS: DocMeta[] = [
   {
     id: "bast",
     label: "BAST Kendaraan",
-    short: "BAST",
+    menuLabel: "BASTK",
+    short: "BASTK",
     icon: "📄",
     desc: "Berita Acara Serah Terima Kendaraan Bermotor + checklist perlengkapan.",
     tile: "from-amber-500 to-orange-600",
     filePrefix: "BAST",
   },
-  {
-    id: "lampiran",
-    label: "Lampiran Dokumen",
-    short: "Lampiran",
-    icon: "📎",
-    desc: "Lampiran foto KTP & STNK debitur dalam satu halaman.",
-    tile: "from-sky-500 to-blue-600",
-    filePrefix: "LAMPIRAN",
-  },
 ];
 
 export const DOC_BY_ID: Record<DocId, DocMeta> = {
   tugas: DOCS[0],
-  penyerahan: DOCS[1],
-  bast: DOCS[2],
-  lampiran: DOCS[3],
+  lampiran: DOCS[1],
+  penyerahan: DOCS[2],
+  bast: DOCS[3],
 };
 
 /* ------------------------------------------------------------------ */

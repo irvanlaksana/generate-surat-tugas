@@ -35,16 +35,20 @@ export default function SidebarNav({
   return (
     <>
       {/* ================== DESKTOP ================== */}
-      <aside className="no-print hidden lg:flex lg:w-[218px] lg:shrink-0 lg:flex-col bg-slate-900 text-slate-100">
-        <div className="flex items-center gap-2.5 px-4 pb-3 pt-4">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-[16px] shadow-lg shadow-indigo-950/40">
+      <aside
+        className="sidebar-auto-hide no-print hidden lg:flex lg:shrink-0 lg:flex-col bg-slate-900 text-slate-100"
+        aria-label="Menu Generator Surat"
+        title="Arahkan kursor ke sini untuk membuka menu"
+      >
+        <div className="sidebar-header flex items-center gap-2.5 px-4 pb-3 pt-4">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-[16px] shadow-lg shadow-indigo-950/40">
             📝
           </div>
-          <div className="min-w-0">
-            <h1 className="truncate text-[13.5px] font-bold leading-tight tracking-tight">
+          <div className="sidebar-brand-copy min-w-0">
+            <h1 className="sidebar-label truncate text-[13.5px] font-bold leading-tight tracking-tight">
               Generator Surat
             </h1>
-            <p className="text-[9.5px] font-medium uppercase tracking-[0.14em] text-slate-500">
+            <p className="sidebar-label text-[9.5px] font-medium uppercase tracking-[0.14em] text-slate-500">
               Satu isian · 4 dokumen
             </p>
           </div>
@@ -65,14 +69,14 @@ export default function SidebarNav({
             onClick={() => onOpenDoc("semua")}
           />
 
-          <p className="px-2.5 pb-1 pt-3 text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500">
+          <p className="sidebar-section-label px-2.5 pb-1 pt-3 text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500">
             Pratinjau Dokumen
           </p>
           {DOCS.map((d) => (
             <NavItem
               key={d.id}
               icon={d.icon}
-              label={d.label}
+              label={d.menuLabel ?? d.label}
               active={isianActive && tab === d.id}
               dot={dotClass(docCounts[d.id])}
               onClick={() => onOpenDoc(d.id)}
@@ -80,24 +84,28 @@ export default function SidebarNav({
           ))}
         </nav>
 
-        <div className="border-t border-white/10 p-2">
+        <div className="sidebar-footer border-t border-white/10 p-2">
           <div className="flex gap-1">
             <button
               type="button"
               onClick={onContoh}
-              className="flex-1 rounded-lg bg-white/5 px-2 py-1.5 text-[11px] font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
+              title="Muat contoh data"
+              className="flex min-w-0 flex-1 items-center justify-center gap-1 rounded-lg bg-white/5 px-2 py-1.5 text-[11px] font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
             >
-              Contoh
+              <span aria-hidden="true">🧪</span>
+              <span className="sidebar-label">Contoh</span>
             </button>
             <button
               type="button"
               onClick={onReset}
-              className="flex-1 rounded-lg bg-white/5 px-2 py-1.5 text-[11px] font-medium text-slate-300 transition hover:bg-rose-500/20 hover:text-rose-200"
+              title="Reset semua data"
+              className="flex min-w-0 flex-1 items-center justify-center gap-1 rounded-lg bg-white/5 px-2 py-1.5 text-[11px] font-medium text-slate-300 transition hover:bg-rose-500/20 hover:text-rose-200"
             >
-              Reset
+              <span aria-hidden="true">↺</span>
+              <span className="sidebar-label">Reset</span>
             </button>
           </div>
-          <p className="mt-2 px-1 text-[9px] leading-relaxed text-slate-500">
+          <p className="sidebar-footer-note mt-2 px-1 text-[9px] leading-relaxed text-slate-500">
             Semua isian tersimpan otomatis di browser.
           </p>
         </div>
@@ -171,7 +179,7 @@ function NavItem({
         <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r bg-indigo-400" />
       )}
       <span className="w-[17px] shrink-0 text-center text-[14px]">{icon}</span>
-      <span className="min-w-0 flex-1 truncate">{label}</span>
+      <span className="sidebar-label min-w-0 flex-1 truncate">{label}</span>
       {dot && (
         <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} />
       )}
